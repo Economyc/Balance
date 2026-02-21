@@ -3,7 +3,8 @@
 
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>Balance — Control de Gastos</title>
 
   <!-- Tipografía Inter -->
@@ -23,9 +24,8 @@
   <meta name="apple-mobile-web-app-title" content="Balance" />
   <link rel="apple-touch-icon" href="icons/icon-192.png" />
 
-  <!-- Android / Chrome -->
-  <meta name="theme-color" content="#1D1D1F" media="(prefers-color-scheme: light)" />
-  <meta name="theme-color" content="#121212" media="(prefers-color-scheme: dark)" />
+  <!-- Android / Chrome / iOS Dynamic -->
+  <meta name="theme-color" content="#F5F5F7" />
 
   <!-- Tailwind CSS Estático (Producción) -->
   <link rel="stylesheet" href="style.css" />
@@ -63,19 +63,44 @@
       overflow-x: hidden;
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
-      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+
+    :root {
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    /* Transición suave para el fondo */
+    html {
+      transition: background-color 0.3s ease;
+      min-height: 100vh;
+      min-height: -webkit-fill-available;
     }
 
     /* Light default */
+    html:not(.dark) {
+      background-color: #F5F5F7;
+    }
+
     html:not(.dark) body {
-      background: #F5F5F7;
       color: #1D1D1F;
     }
 
     /* Dark */
+    html.dark {
+      background-color: #121212;
+    }
+
     html.dark body {
-      background: #121212;
       color: #F5F5F7;
+    }
+
+    .safe-padding-top {
+      padding-top: var(--safe-top);
+    }
+
+    .safe-padding-bottom {
+      padding-bottom: var(--safe-bottom);
     }
 
     ::-webkit-scrollbar {
@@ -194,6 +219,22 @@
       useEffect(() => {
         document.documentElement.classList.toggle('dark', dark);
         try { localStorage.setItem('balance_theme', dark ? 'dark' : 'light'); } catch { }
+
+        // Actualizar theme-color dinámicamente para móviles
+        const themeColor = dark ? '#121212' : '#F5F5F7';
+        let metaTheme = document.querySelector('meta[name="theme-color"]');
+        if (!metaTheme) {
+          metaTheme = document.createElement('meta');
+          metaTheme.name = 'theme-color';
+          document.head.appendChild(metaTheme);
+        }
+        metaTheme.setAttribute('content', themeColor);
+
+        // Soporte para Safari / iOS
+        let appleMeta = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');
+        if (appleMeta) {
+          appleMeta.setAttribute('content', dark ? 'black-translucent' : 'default');
+        }
       }, [dark]);
 
       const toggle = useCallback(() => setDark((d) => !d), []);
@@ -1124,7 +1165,7 @@
 
       return html`<div className="min-h-screen bg-surface dark:bg-surface-dark pb-24 theme-transition">
         <!-- Header -->
-        <div className="sticky top-0 z-40 bg-surface/80 dark:bg-surface-dark/80 backdrop-blur-xl border-b border-divider/50 dark:border-divider-dark/50 theme-transition">
+        <div className="sticky top-0 z-40 bg-surface/80 dark:bg-surface-dark/80 backdrop-blur-xl border-b border-divider/50 dark:border-divider-dark/50 theme-transition safe-padding-top">
           <div className="max-w-lg mx-auto px-5 py-4 flex items-center justify-between">
             <div>
               <h1 className="text-xl font-bold text-ink dark:text-ink-dark tracking-tight">Balance</h1>
