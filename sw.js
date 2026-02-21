@@ -1,0 +1,75 @@
+// ═══════════════════════════════════════════════════════════════
+// BALANCE — Service Worker (Cache-first para shell, network-first para API)
+// ═══════════════════════════════════════════════════════════════
+
+const CACHE_NAME = 'balance-v1';
+
+// Recursos del app shell que se cachean al instalar
+const APP_SHELL = [
+  './',
+  './index.html',
+  './style.css',
+  './favicon.png',
+  './manifest.json',
+];
+
+// ─── Install: cachear app shell ────────────────────────────────
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME)
+      .then((cache) => cache.addAll(APP_SHELL))
+      .then(() => self.skipWaiting())
+  );
+});
+
+// ─── Activate: limpiar caches anteriores ───────────────────────
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys()
+      .then((keys) => Promise.all(
+        keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k))
+      ))
+      .then(() => self.clients.claim())
+  );
+});
+
+// ─── Fetch: network-first para API/Firebase, cache-first para el resto
+self.addEventListener('fetch', (event) => {
+  const url = new URL(event.request.url);
+
+  // No cachear requests a Firebase, ESM, o Google APIs (siempre network)
+  const isExternal =
+    url.hostname.includes('firebasestorage') ||
+    url.hostname.includes('firebaseio') ||
+    url.hostname.includes('googleapis') ||
+    url.hostname.includes('gstatic') ||
+    url.hostname.includes('esm.sh') ||
+    url.hostname.includes('fonts.googleapis') ||
+    url.hostname.includes('identitytoolkit');
+
+  if (isExternal) {
+    // Network-only para servicios externos
+    event.respondWith(fetch(event.request));
+    return;
+  }
+
+  // Cache-first para recursos locales del app shell
+  event.respondWith(
+    caches.match(event.request).then((cached) => {
+      if (cached) return cached;
+      return fetch(event.request).then((response) => {
+        // Cachear respuestas válidas de mismo origen
+        if (response && response.status === 200 && response.type === 'basic') {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+        }
+        return response;
+      });
+    }).catch(() => {
+      // Fallback offline: devolver la página principal
+      if (event.request.mode === 'navigate') {
+        return caches.match('./index.html');
+      }
+    })
+  );
+});

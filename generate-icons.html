@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head><title>Generar iconos PWA</title></head>
+<body>
+<h2>Haz clic en cada botón para descargar el icono</h2>
+<button onclick="generate(192)">Descargar icon-192.png</button>
+<button onclick="generate(512)">Descargar icon-512.png</button>
+
+<script>
+function generate(size) {
+  const c = document.createElement('canvas');
+  c.width = size; c.height = size;
+  const ctx = c.getContext('2d');
+
+  // Fondo con esquinas redondeadas
+  const r = size * 0.22;
+  ctx.beginPath();
+  ctx.moveTo(r, 0);
+  ctx.lineTo(size - r, 0);
+  ctx.quadraticCurveTo(size, 0, size, r);
+  ctx.lineTo(size, size - r);
+  ctx.quadraticCurveTo(size, size, size - r, size);
+  ctx.lineTo(r, size);
+  ctx.quadraticCurveTo(0, size, 0, size - r);
+  ctx.lineTo(0, r);
+  ctx.quadraticCurveTo(0, 0, r, 0);
+  ctx.closePath();
+  ctx.fillStyle = '#1D1D1F';
+  ctx.fill();
+
+  // Icono de wallet (simplificado)
+  const cx = size / 2, cy = size / 2;
+  const s = size * 0.28;
+  ctx.strokeStyle = '#FFFFFF';
+  ctx.lineWidth = size * 0.04;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+
+  // Cuerpo de la wallet
+  const wl = cx - s, wr = cx + s, wt = cy - s * 0.7, wb = cy + s * 0.7;
+  const wr2 = size * 0.06;
+  ctx.beginPath();
+  ctx.moveTo(wl + wr2, wt);
+  ctx.lineTo(wr - wr2, wt);
+  ctx.quadraticCurveTo(wr, wt, wr, wt + wr2);
+  ctx.lineTo(wr, wb - wr2);
+  ctx.quadraticCurveTo(wr, wb, wr - wr2, wb);
+  ctx.lineTo(wl + wr2, wb);
+  ctx.quadraticCurveTo(wl, wb, wl, wb - wr2);
+  ctx.lineTo(wl, wt + wr2);
+  ctx.quadraticCurveTo(wl, wt, wl + wr2, wt);
+  ctx.stroke();
+
+  // Flap superior
+  ctx.beginPath();
+  ctx.moveTo(wl, wt + s * 0.3);
+  ctx.lineTo(wl, wt - s * 0.15 + wr2);
+  ctx.quadraticCurveTo(wl, wt - s * 0.15, wl + wr2, wt - s * 0.15);
+  ctx.lineTo(wr - s * 0.3, wt - s * 0.15);
+  ctx.stroke();
+
+  // Circulito (clasp)
+  ctx.beginPath();
+  ctx.arc(wr - s * 0.3, cy, size * 0.04, 0, Math.PI * 2);
+  ctx.fillStyle = '#FFFFFF';
+  ctx.fill();
+
+  // Descargar
+  c.toBlob((blob) => {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `icon-${size}.png`;
+    a.click();
+  });
+}
+</script>
+</body>
+</html>

@@ -14,6 +14,19 @@
   <!-- Favicon Minimalista -->
   <link rel="icon" type="image/png" href="favicon.png" />
 
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="manifest.json" />
+
+  <!-- iOS PWA — Añadir a Pantalla de Inicio -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Balance" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+
+  <!-- Android / Chrome -->
+  <meta name="theme-color" content="#1D1D1F" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#121212" media="(prefers-color-scheme: dark)" />
+
   <!-- Tailwind CSS Estático (Producción) -->
   <link rel="stylesheet" href="style.css" />
 
@@ -100,7 +113,7 @@
     // React 18 + Tailwind (Dark/Light) + Framer Motion + Lucide + htm
     // ═══════════════════════════════════════════════════════════════
 
-    import React, { useState, useEffect, useMemo, useCallback, createContext, useContext } from "react";
+    import React, { useState, useEffect, useRef, useMemo, useCallback, createContext, useContext } from "react";
     import { createRoot } from "react-dom/client";
     import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
     import {
@@ -287,31 +300,39 @@
     const HeaderMenu = ({ onOpenCategories, onLogout }) => {
       const { dark, toggle } = useTheme();
       const [open, setOpen] = useState(false);
+      const menuRef = useRef(null);
 
-      return html`<div className="relative z-50">
+      // Cerrar al hacer clic en CUALQUIER parte fuera del menú (document-level)
+      useEffect(() => {
+        if (!open) return;
+        const handler = (e) => {
+          if (menuRef.current && !menuRef.current.contains(e.target)) {
+            setOpen(false);
+          }
+        };
+        document.addEventListener('pointerdown', handler);
+        return () => document.removeEventListener('pointerdown', handler);
+      }, [open]);
 
-        <!-- Overlay para cerrar al hacer clic afuera — debajo del botón (z-40 < z-50) -->
-        ${open && html`<div className="fixed inset-0 z-40" onClick=${() => setOpen(false)} />`}
+      return html`<div ref=${menuRef} className="relative">
 
-        <!-- Botón disparador — siempre por encima del overlay -->
         <${HapticButton} onClick=${() => setOpen((v) => !v)}
-          className=${`relative z-50 p-2.5 rounded-xl transition-colors ${open ? 'bg-surface-elevated dark:bg-surface-elevated-dark' : 'hover:bg-surface-elevated dark:hover:bg-surface-elevated-dark'}`}>
+          className=${`p-2.5 rounded-xl transition-colors ${open ? 'bg-surface-elevated dark:bg-surface-elevated-dark' : 'hover:bg-surface-elevated dark:hover:bg-surface-elevated-dark'}`}>
           <${MoreHorizontal} size=${18} strokeWidth=${1.5} className="text-ink dark:text-ink-dark" />
         </${HapticButton}>
 
-        <!-- Panel animado — único hijo de AnimatePresence para que exit funcione -->
         <${AnimatePresence}>
           ${open && html`
             <${MDiv}
               key="header-menu-panel"
-              initial=${{ opacity: 0, scale: 0.95, y: -6 }}
+              initial=${{ opacity: 0, scale: 0.9, y: -8 }}
               animate=${{ opacity: 1, scale: 1, y: 0 }}
-              exit=${{ opacity: 0, scale: 0.95, y: -6 }}
-              transition=${{ type: 'spring', stiffness: 380, damping: 28 }}
-              className="absolute right-0 top-full mt-2 z-50 bg-surface-elevated dark:bg-surface-elevated-dark rounded-2xl shadow-xl border border-divider/50 dark:border-divider-dark/50 overflow-hidden w-52 theme-transition">
+              exit=${{ opacity: 0, scale: 0.9, y: -8 }}
+              transition=${{ type: 'spring', stiffness: 420, damping: 28 }}
+              className="absolute right-0 top-full mt-2 z-[100] bg-surface-elevated dark:bg-surface-elevated-dark rounded-2xl shadow-xl border border-divider/50 dark:border-divider-dark/50 overflow-hidden w-52 theme-transition origin-top-right">
 
               <!-- Dark / Light toggle row -->
-              <div className="flex items-center justify-between px-4 py-3.5">
+              <div className="flex items-center justify-between px-4 py-3.5 hover:bg-surface/60 dark:hover:bg-surface-dark/60 transition-colors cursor-default">
                 <div className="flex items-center gap-3">
                   ${dark
             ? html`<${Sun} size=${16} strokeWidth=${1.5} className="text-ink dark:text-ink-dark" />`
@@ -326,7 +347,7 @@
               <!-- Categorías -->
               <${HapticButton}
                 onClick=${() => { setOpen(false); onOpenCategories(); }}
-                className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-surface dark:hover:bg-surface-dark transition-colors text-left">
+                className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-surface/60 dark:hover:bg-surface-dark/60 transition-colors text-left">
                 <${Tag} size=${16} strokeWidth=${1.5} className="text-ink dark:text-ink-dark" />
                 <span className="text-sm font-medium text-ink dark:text-ink-dark">Categorías</span>
               </${HapticButton}>
@@ -336,7 +357,7 @@
               <!-- Cerrar sesión -->
               <${HapticButton}
                 onClick=${() => { setOpen(false); onLogout(); }}
-                className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-surface dark:hover:bg-surface-dark transition-colors text-left">
+                className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-surface/60 dark:hover:bg-surface-dark/60 transition-colors text-left">
                 <${LogOut} size=${16} strokeWidth=${1.5} className="text-muted dark:text-muted-dark" />
                 <span className="text-sm font-medium text-muted dark:text-muted-dark">Cerrar Sesión</span>
               </${HapticButton}>
@@ -1217,6 +1238,17 @@
     createRoot(document.getElementById('root')).render(
       html`<${ThemeProvider}><${App} /></${ThemeProvider}>`
     );
+  </script>
+
+  <!-- Registro del Service Worker para PWA -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+          .then((reg) => console.log('SW registrado:', reg.scope))
+          .catch((err) => console.warn('SW error:', err));
+      });
+    }
   </script>
 </body>
 
