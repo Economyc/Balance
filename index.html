@@ -114,6 +114,28 @@
       font-size: 16px !important;
     }
 
+    /* Fix date inputs overflowing their containers */
+    input[type="date"] {
+      max-width: 100%;
+      min-width: 0;
+      overflow: hidden;
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      appearance: none;
+    }
+
+    /* Safari/iOS specific date input fixes */
+    input[type="date"]::-webkit-date-and-time-value {
+      text-align: left;
+    }
+
+    input[type="date"]::-webkit-calendar-picker-indicator {
+      opacity: 0.5;
+      cursor: pointer;
+      padding: 0;
+      margin: 0;
+    }
+
     .switch-track {
       transition: background-color 0.25s ease;
     }
@@ -917,8 +939,9 @@
     // ═══════════════════════════════════════════════════════════════
 
     const YearView = ({ expenses, categories, year }) => {
-      const recurringExpenses = expenses.filter((e) => e.recurring);
-      const annualRecurring = recurringExpenses.reduce((s, e) => s + e.amount * 12, 0);
+      // Solo originales (no virtuales) para la proyección anual y la lista
+      const originalRecurring = expenses.filter((e) => e.recurring && !e._isVirtual);
+      const annualRecurring = originalRecurring.reduce((s, e) => s + e.amount * 12, 0);
       const yearExpenses = expenses.filter((e) => parseLocalDate(e.date).getFullYear() === year);
       const annualTotal = yearExpenses.reduce((s, e) => s + e.amount, 0);
       const monthlyTotals = useMemo(() => {
@@ -953,11 +976,11 @@
           </div>
         </div>
 
-        ${recurringExpenses.length > 0 && html`
+        ${originalRecurring.length > 0 && html`
           <div className="bg-surface-elevated dark:bg-surface-elevated-dark rounded-3xl p-5 shadow-sm theme-transition">
             <h3 className="text-xs font-medium text-muted dark:text-muted-dark uppercase tracking-wider mb-3">Gastos Recurrentes</h3>
             <div className="space-y-2.5">
-              ${recurringExpenses.map((e) => {
+              ${originalRecurring.map((e) => {
         const cat = categories.find((c) => c.id === e.categoryId);
         return html`<div key=${e.id} className="flex items-center gap-3">
                   <div className="w-8 h-8 bg-surface dark:bg-surface-dark rounded-xl flex items-center justify-center theme-transition">
@@ -1116,9 +1139,25 @@
       }, [user, categories]);
 
       const handleEditExpense = useCallback((expense) => {
+        // Si es un gasto virtual (proyección recurrente), editar el original
+        if (expense._isVirtual && expense._originalId) {
+          const original = expenses.find((e) => e.id === expense._originalId);
+          if (original) {
+            setEditingExpense(original);
+            setShowExpenseModal(true);
+            return;
+          }
+        }
         setEditingExpense(expense);
         setShowExpenseModal(true);
-      }, []);
+      }, [expenses]);
+
+      const handleDeleteExpenseWrapped = useCallback(async (id) => {
+        // Si es un ID virtual, extraer el ID original
+        const recMatch = id.match(/^(.+)_rec_\d+_\d+$/);
+        const realId = recMatch ? recMatch[1] : id;
+        return handleDeleteExpense(realId);
+      }, [handleDeleteExpense]);
 
       const handleLogout = async () => {
         try {
@@ -1131,9 +1170,62 @@
         }
       };
 
+      // ─── Proyectar gastos recurrentes en el período visto ──────
+      // Los gastos recurrentes se "clonan" para cada mes desde su
+      // fecha de creación hasta el mes actualmente visto, usando el
+      // mismo día (o el último del mes si no existe).
+      const expensesWithRecurring = useMemo(() => {
+        const base = [...expenses];
+        const recurring = expenses.filter((e) => e.recurring);
+
+        // Determinar el mes/año objetivo según la vista
+        let targetMonth = currentMonth;
+        let targetYear = currentYear;
+
+        recurring.forEach((e) => {
+          const orig = parseLocalDate(e.date);
+          const origMonth = orig.getMonth();
+          const origYear = orig.getFullYear();
+          const origDay = orig.getDate();
+
+          // Generar copias virtuales para cada mes desde el siguiente
+          // al original hasta el mes actual (inclusive)
+          let m = origMonth;
+          let y = origYear;
+
+          // Avanzar al siguiente mes después del original
+          m++;
+          if (m > 11) { m = 0; y++; }
+
+          while (y < targetYear || (y === targetYear && m <= targetMonth)) {
+            // Calcular día válido para este mes
+            const daysInMonth = new Date(y, m + 1, 0).getDate();
+            const day = Math.min(origDay, daysInMonth);
+            const newDate = `${y}-${String(m + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+
+            // Solo agregar si no existe ya un gasto con el mismo ID base en este mes
+            const virtualId = `${e.id}_rec_${y}_${m}`;
+            if (!base.some((b) => b.id === virtualId)) {
+              base.push({
+                ...e,
+                id: virtualId,
+                date: newDate,
+                _isVirtual: true,
+                _originalId: e.id,
+              });
+            }
+
+            m++;
+            if (m > 11) { m = 0; y++; }
+          }
+        });
+
+        return base;
+      }, [expenses, currentMonth, currentYear]);
+
       // Filtrado según tab activo + filtros del usuario
       const filteredExpenses = useMemo(() => {
-        let result = [...expenses];
+        let result = [...expensesWithRecurring];
         if (activeTab === 'month') {
           result = result.filter((e) => { const d = parseLocalDate(e.date); return d.getMonth() === currentMonth && d.getFullYear() === currentYear; });
         } else if (activeTab === 'fortnight') {
@@ -1147,7 +1239,7 @@
         if (filters.onlyRecurring) result = result.filter((e) => e.recurring);
         result.sort((a, b) => (b.date > a.date ? 1 : -1));
         return result;
-      }, [expenses, activeTab, currentMonth, currentYear, selectedFortnight, filters]);
+      }, [expensesWithRecurring, activeTab, currentMonth, currentYear, selectedFortnight, filters]);
 
       const totalFiltered = useMemo(() => filteredExpenses.reduce((s, e) => s + e.amount, 0), [filteredExpenses]);
       const recurringTotal = useMemo(() => filteredExpenses.filter((e) => e.recurring).reduce((s, e) => s + e.amount, 0), [filteredExpenses]);
@@ -1208,7 +1300,7 @@
           <!-- Main content por tab -->
           <${AnimatePresence} mode="wait">
             ${activeTab === 'year' ? html`
-              <${YearView} key="year" expenses=${expenses} categories=${categories} year=${currentYear} />
+              <${YearView} key="year" expenses=${expensesWithRecurring} categories=${categories} year=${currentYear} />
             ` : html`
               <${MDiv} key=${activeTab + '-' + selectedFortnight}
                 initial=${{ opacity: 0, x: 30 }} animate=${{ opacity: 1, x: 0 }} exit=${{ opacity: 0, x: -30 }}
@@ -1249,7 +1341,7 @@
                     expenses=${filteredExpenses}
                     categories=${categories}
                     onEdit=${handleEditExpense}
-                    onDelete=${handleDeleteExpense} />
+                    onDelete=${handleDeleteExpenseWrapped} />
                 </div>
               </${MDiv}>
             `}
