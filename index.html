@@ -1,0 +1,1239 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Balance — Control de Gastos</title>
+
+  <!-- Tipografía Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+
+  <!-- Tailwind CSS CDN con dark mode por clase -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            // Light
+            surface: { DEFAULT: '#F5F5F7', dark: '#121212' },
+            ink: { DEFAULT: '#1D1D1F', dark: '#F5F5F7' },
+            muted: { DEFAULT: '#86868B', dark: '#8E8E93' },
+            'surface-elevated': { DEFAULT: '#FFFFFF', dark: '#1C1C1E' },
+            divider: { DEFAULT: '#E5E5E7', dark: '#2C2C2E' },
+          },
+          fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
+          borderRadius: { '2xl': '1rem', '3xl': '1.5rem' },
+        },
+      },
+    };
+  </script>
+
+  <!-- ESM Import Map -->
+  <script type="importmap">
+  {
+    "imports": {
+      "react": "https://esm.sh/react@18.2.0",
+      "react/": "https://esm.sh/react@18.2.0/",
+      "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
+      "framer-motion": "https://esm.sh/framer-motion@10.18.0?deps=react@18.2.0,react-dom@18.2.0",
+      "lucide-react": "https://esm.sh/lucide-react@0.294.0?deps=react@18.2.0,react-dom@18.2.0",
+      "htm": "https://esm.sh/htm@3.1.1",
+      "firebase/app": "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js",
+      "firebase/auth": "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js",
+      "firebase/firestore": "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"
+    }
+  }
+  </script>
+
+  <style>
+    * {
+      -webkit-tap-highlight-color: transparent;
+      box-sizing: border-box;
+    }
+
+    html,
+    body,
+    #root {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      font-family: 'Inter', system-ui, sans-serif;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+
+    /* Light default */
+    html:not(.dark) body {
+      background: #F5F5F7;
+      color: #1D1D1F;
+    }
+
+    /* Dark */
+    html.dark body {
+      background: #121212;
+      color: #F5F5F7;
+    }
+
+    ::-webkit-scrollbar {
+      width: 0;
+      height: 0;
+    }
+
+    input,
+    select,
+    textarea {
+      font-size: 16px !important;
+    }
+
+    .switch-track {
+      transition: background-color 0.25s ease;
+    }
+
+    .switch-thumb {
+      transition: transform 0.25s ease;
+    }
+
+    /* Tema transition suave en cards/modals */
+    .theme-transition {
+      transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="root"></div>
+
+  <script type="module">
+    // ═══════════════════════════════════════════════════════════════
+    // BALANCE v2.0 — Control de Gastos Profesional
+    // React 18 + Tailwind (Dark/Light) + Framer Motion + Lucide + htm
+    // ═══════════════════════════════════════════════════════════════
+
+    import React, { useState, useEffect, useMemo, useCallback, createContext, useContext } from "react";
+    import { createRoot } from "react-dom/client";
+    import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
+    import {
+      Wallet, Plus, X, Pencil, Trash2, RefreshCw, Tag,
+      SlidersHorizontal, LogOut, Inbox, Circle, Calendar,
+      TrendingDown, BarChart3, ChevronDown, Moon, Sun,
+      UtensilsCrossed, Car, Home, Heart, Gamepad2, GraduationCap,
+      CreditCard, MoreHorizontal, ShoppingBag, Wifi, Phone, Briefcase,
+      Plane, Gift, Music, BookOpen, Dumbbell, Baby, Dog, Leaf,
+      LogIn, Loader2
+    } from "lucide-react";
+    import htm from "htm";
+
+    // Firebase Imports
+    import { initializeApp } from "firebase/app";
+    import {
+      getAuth,
+      signInWithPopup,
+      GoogleAuthProvider,
+      signOut,
+      onAuthStateChanged
+    } from "firebase/auth";
+    import {
+      getFirestore,
+      doc,
+      setDoc,
+      onSnapshot,
+      collection,
+      query,
+      where,
+      getDocs,
+      deleteDoc,
+      writeBatch
+    } from "firebase/firestore";
+
+    const html = htm.bind(React.createElement);
+    const MDiv = motion.div;
+    const MButton = motion.button;
+
+    // ─── Firebase Config ─────────────────────────────────────────
+    // Reemplaza esto con tu configuración real de Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyBqLiNgcr8fiksO7tv7uhPETAoNPBP0JuU",
+      authDomain: "balanceapp-2cfa6.firebaseapp.com",
+      projectId: "balanceapp-2cfa6",
+      storageBucket: "balanceapp-2cfa6.firebasestorage.app",
+      messagingSenderId: "550152560045",
+      appId: "1:550152560045:web:740f9675a24d4394699524"
+    };
+
+    const fbApp = initializeApp(firebaseConfig);
+    const auth = getAuth(fbApp);
+    const db = getFirestore(fbApp);
+    const provider = new GoogleAuthProvider();
+
+    // ─── Mapa de iconos para lookup dinámico ─────────────────────
+    const ICON_MAP = {
+      Wallet, Plus, X, Pencil, Trash2, RefreshCw, Tag,
+      SlidersHorizontal, LogOut, Inbox, Circle, Calendar,
+      TrendingDown, BarChart3, ChevronDown, Moon, Sun,
+      UtensilsCrossed, Car, Home, Heart, Gamepad2, GraduationCap,
+      CreditCard, MoreHorizontal, ShoppingBag, Wifi, Phone, Briefcase,
+      Plane, Gift, Music, BookOpen, Dumbbell, Baby, Dog, Leaf,
+    };
+
+    // ═══════════════════════════════════════════════════════════════
+    // THEME CONTEXT — Dark / Light Mode
+    // ═══════════════════════════════════════════════════════════════
+
+    const ThemeContext = createContext();
+    const useTheme = () => useContext(ThemeContext);
+
+    const ThemeProvider = ({ children }) => {
+      const [dark, setDark] = useState(() => {
+        try { return localStorage.getItem('balance_theme') === 'dark'; } catch { return false; }
+      });
+
+      useEffect(() => {
+        document.documentElement.classList.toggle('dark', dark);
+        try { localStorage.setItem('balance_theme', dark ? 'dark' : 'light'); } catch { }
+      }, [dark]);
+
+      const toggle = useCallback(() => setDark((d) => !d), []);
+      const value = useMemo(() => ({ dark, toggle }), [dark, toggle]);
+
+      return html`<${ThemeContext.Provider} value=${value}>${children}</${ThemeContext.Provider}>`;
+    };
+
+    // ─── Utilidades ──────────────────────────────────────────────
+
+    const formatCOP = (amount) => {
+      const num = Math.round(Number(amount) || 0);
+      return '$' + num.toLocaleString('es-CO', { maximumFractionDigits: 0 });
+    };
+
+    const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+
+    const MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+    const getMesNombre = (idx) => MESES[idx];
+
+    const getQuincena = (dateStr) => new Date(dateStr).getDate() <= 15 ? 1 : 2;
+
+    const parseLocalDate = (dateStr) => {
+      const [y, m, d] = dateStr.split('-').map(Number);
+      return new Date(y, m - 1, d);
+    };
+
+    const todayStr = () => {
+      const d = new Date();
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    };
+
+    // ─── LocalStorage ────────────────────────────────────────────
+
+    const loadState = (key, fallback) => {
+      try { const r = localStorage.getItem(key); return r ? JSON.parse(r) : fallback; }
+      catch { return fallback; }
+    };
+    const saveState = (key, value) => {
+      try { localStorage.setItem(key, JSON.stringify(value)); } catch { }
+    };
+
+    // ─── Categorías por defecto ──────────────────────────────────
+
+    const DEFAULT_CATEGORIES = [
+      { id: 'cat-food', name: 'Alimentación', icon: 'UtensilsCrossed' },
+      { id: 'cat-transport', name: 'Transporte', icon: 'Car' },
+      { id: 'cat-home', name: 'Vivienda', icon: 'Home' },
+      { id: 'cat-health', name: 'Salud', icon: 'Heart' },
+      { id: 'cat-fun', name: 'Entretenimiento', icon: 'Gamepad2' },
+      { id: 'cat-edu', name: 'Educación', icon: 'GraduationCap' },
+      { id: 'cat-sub', name: 'Suscripciones', icon: 'CreditCard' },
+      { id: 'cat-other', name: 'Otros', icon: 'MoreHorizontal' },
+    ];
+
+    const ICON_OPTIONS = [
+      'UtensilsCrossed', 'Car', 'Home', 'Heart', 'Gamepad2', 'GraduationCap',
+      'CreditCard', 'MoreHorizontal', 'ShoppingBag', 'Wifi', 'Phone', 'Briefcase',
+      'Plane', 'Gift', 'Music', 'BookOpen', 'Dumbbell', 'Baby', 'Dog', 'Leaf',
+    ];
+
+    // ═══════════════════════════════════════════════════════════════
+    // COMPONENTES BASE (Dark-mode aware)
+    // ═══════════════════════════════════════════════════════════════
+
+    const LucideIcon = ({ name, size = 20, strokeWidth = 1.5, className = '' }) => {
+      const Ic = ICON_MAP[name] || Circle;
+      return html`<${Ic} size=${size} strokeWidth=${strokeWidth} className=${className} />`;
+    };
+
+    const HapticButton = ({ children, onClick, className = '', disabled = false, ...props }) => {
+      return html`<${MButton}
+        whileTap=${{ scale: 0.95 }}
+        transition=${{ type: 'spring', stiffness: 400, damping: 17 }}
+        onClick=${onClick} disabled=${disabled}
+        className=${`${className} ${disabled ? 'opacity-40 pointer-events-none' : ''}`}
+        ...${props}
+      >${children}</${MButton}>`;
+    };
+
+    // Toggle switch — se adapta al tema
+    const Toggle = ({ checked, onChange }) => {
+      return html`<button type="button" role="switch" aria-checked=${checked}
+        onClick=${() => onChange(!checked)}
+        className=${`relative inline-flex h-7 w-12 items-center rounded-full switch-track ${checked ? 'bg-ink dark:bg-ink-dark' : 'bg-divider dark:bg-divider-dark'}`}>
+        <span className=${`switch-thumb inline-block h-5 w-5 rounded-full shadow-sm ${checked ? 'translate-x-6 bg-white dark:bg-surface-dark' : 'translate-x-1 bg-white dark:bg-surface-dark'}`} />
+      </button>`;
+    };
+
+    // Toggle para el tema Dark/Light
+    const ThemeToggle = () => {
+      const { dark, toggle } = useTheme();
+      return html`<${HapticButton} onClick=${toggle}
+        className="p-2.5 rounded-xl hover:bg-surface-elevated dark:hover:bg-surface-elevated-dark transition-colors">
+        ${dark
+          ? html`<${Sun} size=${18} strokeWidth=${1.5} className="text-ink dark:text-ink-dark" />`
+          : html`<${Moon} size=${18} strokeWidth=${1.5} className="text-ink dark:text-ink-dark" />`
+        }
+      </${HapticButton}>`;
+    };
+
+    // ─── Header Menu Dropdown ────────────────────────────────────
+
+    const HeaderMenu = ({ onOpenCategories, onLogout }) => {
+      const { dark, toggle } = useTheme();
+      const [open, setOpen] = useState(false);
+
+      return html`<div className="relative z-50">
+
+        <!-- Overlay para cerrar al hacer clic afuera — debajo del botón (z-40 < z-50) -->
+        ${open && html`<div className="fixed inset-0 z-40" onClick=${() => setOpen(false)} />`}
+
+        <!-- Botón disparador — siempre por encima del overlay -->
+        <${HapticButton} onClick=${() => setOpen((v) => !v)}
+          className=${`relative z-50 p-2.5 rounded-xl transition-colors ${open ? 'bg-surface-elevated dark:bg-surface-elevated-dark' : 'hover:bg-surface-elevated dark:hover:bg-surface-elevated-dark'}`}>
+          <${MoreHorizontal} size=${18} strokeWidth=${1.5} className="text-ink dark:text-ink-dark" />
+        </${HapticButton}>
+
+        <!-- Panel animado — único hijo de AnimatePresence para que exit funcione -->
+        <${AnimatePresence}>
+          ${open && html`
+            <${MDiv}
+              key="header-menu-panel"
+              initial=${{ opacity: 0, scale: 0.95, y: -6 }}
+              animate=${{ opacity: 1, scale: 1, y: 0 }}
+              exit=${{ opacity: 0, scale: 0.95, y: -6 }}
+              transition=${{ type: 'spring', stiffness: 380, damping: 28 }}
+              className="absolute right-0 top-full mt-2 z-50 bg-surface-elevated dark:bg-surface-elevated-dark rounded-2xl shadow-xl border border-divider/50 dark:border-divider-dark/50 overflow-hidden w-52 theme-transition">
+
+              <!-- Dark / Light toggle row -->
+              <div className="flex items-center justify-between px-4 py-3.5">
+                <div className="flex items-center gap-3">
+                  ${dark
+            ? html`<${Sun} size=${16} strokeWidth=${1.5} className="text-ink dark:text-ink-dark" />`
+            : html`<${Moon} size=${16} strokeWidth=${1.5} className="text-ink dark:text-ink-dark" />`}
+                  <span className="text-sm font-medium text-ink dark:text-ink-dark">${dark ? 'Modo Claro' : 'Modo Oscuro'}</span>
+                </div>
+                <${Toggle} checked=${dark} onChange=${() => toggle()} />
+              </div>
+
+              <div className="h-px bg-divider dark:bg-divider-dark" />
+
+              <!-- Categorías -->
+              <${HapticButton}
+                onClick=${() => { setOpen(false); onOpenCategories(); }}
+                className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-surface dark:hover:bg-surface-dark transition-colors text-left">
+                <${Tag} size=${16} strokeWidth=${1.5} className="text-ink dark:text-ink-dark" />
+                <span className="text-sm font-medium text-ink dark:text-ink-dark">Categorías</span>
+              </${HapticButton}>
+
+              <div className="h-px bg-divider dark:bg-divider-dark" />
+
+              <!-- Cerrar sesión -->
+              <${HapticButton}
+                onClick=${() => { setOpen(false); onLogout(); }}
+                className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-surface dark:hover:bg-surface-dark transition-colors text-left">
+                <${LogOut} size=${16} strokeWidth=${1.5} className="text-muted dark:text-muted-dark" />
+                <span className="text-sm font-medium text-muted dark:text-muted-dark">Cerrar Sesión</span>
+              </${HapticButton}>
+            </${MDiv}>
+          `}
+        </${AnimatePresence}>
+      </div>`;
+    };
+
+    // ─── Modal Overlay (dark-aware) ──────────────────────────────
+
+    const ModalOverlay = ({ children, onClose }) => {
+      return html`<${MDiv}
+        initial=${{ opacity: 0 }} animate=${{ opacity: 1 }} exit=${{ opacity: 0 }}
+        transition=${{ duration: 0.2 }}
+        className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 dark:bg-black/60 backdrop-blur-sm p-4"
+        onClick=${(e) => { if (e.target === e.currentTarget) onClose(); }}>
+        <${MDiv}
+          initial=${{ y: 60, opacity: 0 }} animate=${{ y: 0, opacity: 1 }} exit=${{ y: 60, opacity: 0 }}
+          transition=${{ type: 'spring', stiffness: 300, damping: 30 }}
+          className="bg-surface-elevated dark:bg-surface-elevated-dark w-full max-w-md rounded-3xl shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto theme-transition"
+          onClick=${(e) => e.stopPropagation()}>
+          ${children}
+        </${MDiv}>
+      </${MDiv}>`;
+    };
+
+    // ─── MoneyInput (dark-aware) ─────────────────────────────────
+
+    const MoneyInput = ({ value, onChange, placeholder = '0' }) => {
+      const [display, setDisplay] = useState(value ? formatCOP(value).replace('$', '') : '');
+      const handleChange = (e) => {
+        const raw = e.target.value.replace(/\D/g, '');
+        const num = parseInt(raw, 10) || 0;
+        setDisplay(num ? num.toLocaleString('es-CO') : '');
+        onChange(num);
+      };
+      return html`<div className="relative">
+        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted dark:text-muted-dark font-medium">$</span>
+        <input type="text" inputMode="numeric" value=${display} onChange=${handleChange}
+          placeholder=${placeholder}
+          className="w-full bg-surface dark:bg-surface-dark rounded-2xl pl-8 pr-4 py-3.5 text-ink dark:text-ink-dark font-medium placeholder:text-muted/50 dark:placeholder:text-muted-dark/50 outline-none focus:ring-2 focus:ring-ink/10 dark:focus:ring-ink-dark/10 transition-shadow theme-transition" />
+      </div>`;
+    };
+
+    // ═══════════════════════════════════════════════════════════════
+    // AUTH SCREEN
+    // ═══════════════════════════════════════════════════════════════
+
+    const AuthScreen = ({ onLogin, loading }) => {
+      const handleLogin = async () => {
+        try {
+          await signInWithPopup(auth, provider);
+        } catch (error) {
+          console.error("Error logging in:", error);
+          alert("Error al iniciar sesión. Por favor intenta de nuevo.");
+        }
+      };
+
+      return html`<div className="min-h-screen flex flex-col items-center justify-center px-6 bg-surface dark:bg-surface-dark theme-transition">
+        <${MDiv}
+          initial=${{ opacity: 0, y: 30 }} animate=${{ opacity: 1, y: 0 }}
+          transition=${{ duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
+          className="text-center max-w-sm">
+
+          <${MDiv}
+            initial=${{ scale: 0.8 }} animate=${{ scale: 1 }}
+            transition=${{ delay: 0.1, type: 'spring', stiffness: 200 }}
+            className="w-20 h-20 bg-ink dark:bg-ink-dark rounded-3xl flex items-center justify-center mx-auto mb-8">
+            <${Wallet} size=${36} strokeWidth=${1.5} className="text-white dark:text-surface-dark" />
+          </${MDiv}>
+
+          <h1 className="text-3xl font-bold text-ink dark:text-ink-dark tracking-tight mb-2">Balance</h1>
+          <p className="text-muted dark:text-muted-dark text-base mb-10 leading-relaxed">
+            Control inteligente de tus gastos.<br />Simple, claro y sin estrés.
+          </p>
+
+          <${HapticButton} onClick=${handleLogin} disabled=${loading}
+            className="w-full bg-ink dark:bg-ink-dark text-white dark:text-surface-dark font-semibold py-4 rounded-2xl text-base theme-transition flex items-center justify-center gap-3">
+            ${loading
+          ? html`<${Loader2} size=${20} className="animate-spin" />`
+          : html`<${LogIn} size=${20} />`}
+            ${loading ? 'Cargando...' : 'Iniciar Sesión con Google'}
+          </${HapticButton}>
+
+          <p className="text-muted/60 dark:text-muted-dark/60 text-xs mt-6">Tu data ahora se sincroniza en la nube</p>
+        </${MDiv}>
+      </div>`;
+    };
+
+    // ═══════════════════════════════════════════════════════════════
+    // MODAL: Agregar / Editar Gasto
+    // ═══════════════════════════════════════════════════════════════
+
+    const ExpenseModal = ({ expense, categories, onSave, onClose }) => {
+      const isEdit = Boolean(expense);
+      const [name, setName] = useState(expense?.name || '');
+      const [amount, setAmount] = useState(expense?.amount || 0);
+      const [categoryId, setCategoryId] = useState(expense?.categoryId || (categories[0]?.id || ''));
+      const [date, setDate] = useState(expense?.date || todayStr());
+      const [recurring, setRecurring] = useState(expense?.recurring || false);
+      const canSave = name.trim() && amount > 0 && categoryId && date;
+
+      const handleSave = () => {
+        if (!canSave) return;
+        onSave({ id: expense?.id || uid(), name: name.trim(), amount, categoryId, date, recurring });
+        onClose();
+      };
+
+      return html`<${ModalOverlay} onClose=${onClose}>
+        <div className="p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-bold text-ink dark:text-ink-dark">${isEdit ? 'Editar Gasto' : 'Nuevo Gasto'}</h2>
+            <${HapticButton} onClick=${onClose} className="p-2 rounded-xl hover:bg-surface dark:hover:bg-surface-dark transition-colors">
+              <${X} size=${20} strokeWidth=${1.5} className="text-muted dark:text-muted-dark" />
+            </${HapticButton}>
+          </div>
+
+          <div className="space-y-4">
+            <div>
+              <label className="text-xs font-medium text-muted dark:text-muted-dark uppercase tracking-wider mb-1.5 block">Nombre</label>
+              <input type="text" value=${name} onChange=${(e) => setName(e.target.value)}
+                placeholder="Ej: Almuerzo, Netflix..."
+                className="w-full bg-surface dark:bg-surface-dark rounded-2xl px-4 py-3.5 text-ink dark:text-ink-dark font-medium placeholder:text-muted/50 dark:placeholder:text-muted-dark/50 outline-none focus:ring-2 focus:ring-ink/10 dark:focus:ring-ink-dark/10 theme-transition" />
+            </div>
+
+            <div>
+              <label className="text-xs font-medium text-muted dark:text-muted-dark uppercase tracking-wider mb-1.5 block">Monto (COP)</label>
+              <${MoneyInput} value=${amount} onChange=${setAmount} />
+            </div>
+
+            <div>
+              <label className="text-xs font-medium text-muted dark:text-muted-dark uppercase tracking-wider mb-1.5 block">Categoría</label>
+              <div className="grid grid-cols-4 gap-2">
+                ${categories.map((cat) => html`
+                  <${HapticButton} key=${cat.id} onClick=${() => setCategoryId(cat.id)}
+                    className=${`flex flex-col items-center gap-1.5 py-3 px-1 rounded-2xl transition-colors text-center theme-transition ${categoryId === cat.id
+          ? 'bg-ink dark:bg-ink-dark text-white dark:text-surface-dark'
+          : 'bg-surface dark:bg-surface-dark text-ink dark:text-ink-dark hover:bg-divider dark:hover:bg-divider-dark'
+        }`}>
+                    <${LucideIcon} name=${cat.icon} size=${18} strokeWidth=${1.5} />
+                    <span className="text-[10px] font-medium leading-tight truncate w-full">${cat.name}</span>
+                  </${HapticButton}>
+                `)}
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs font-medium text-muted dark:text-muted-dark uppercase tracking-wider mb-1.5 block">Fecha</label>
+              <input type="date" value=${date} onChange=${(e) => setDate(e.target.value)}
+                className="w-full bg-surface dark:bg-surface-dark rounded-2xl px-4 py-3.5 text-ink dark:text-ink-dark font-medium outline-none focus:ring-2 focus:ring-ink/10 dark:focus:ring-ink-dark/10 theme-transition" />
+            </div>
+
+            <div className="flex items-center justify-between bg-surface dark:bg-surface-dark rounded-2xl px-4 py-3.5 theme-transition">
+              <div className="flex items-center gap-3">
+                <${RefreshCw} size=${18} strokeWidth=${1.5} className="text-muted dark:text-muted-dark" />
+                <span className="text-sm font-medium text-ink dark:text-ink-dark">Gasto Recurrente</span>
+              </div>
+              <${Toggle} checked=${recurring} onChange=${setRecurring} />
+            </div>
+          </div>
+
+          <${HapticButton} onClick=${handleSave} disabled=${!canSave}
+            className="w-full bg-ink dark:bg-ink-dark text-white dark:text-surface-dark font-semibold py-4 rounded-2xl text-base mt-6 theme-transition">
+            ${isEdit ? 'Guardar Cambios' : 'Agregar Gasto'}
+          </${HapticButton}>
+        </div>
+      </${ModalOverlay}>`;
+    };
+
+    // ═══════════════════════════════════════════════════════════════
+    // MODAL: CRUD de Categorías
+    // ═══════════════════════════════════════════════════════════════
+
+    const CategoriesModal = ({ categories, onSave, onClose }) => {
+      const [cats, setCats] = useState([...categories]);
+      const [editingId, setEditingId] = useState(null);
+      const [newName, setNewName] = useState('');
+      const [newIcon, setNewIcon] = useState('ShoppingBag');
+      const [showAdd, setShowAdd] = useState(false);
+
+      const handleAdd = () => {
+        if (!newName.trim()) return;
+        setCats([...cats, { id: uid(), name: newName.trim(), icon: newIcon }]);
+        setNewName(''); setNewIcon('ShoppingBag'); setShowAdd(false);
+      };
+      const handleDelete = (id) => setCats(cats.filter((c) => c.id !== id));
+      const handleRename = (id, name) => { setCats(cats.map((c) => (c.id === id ? { ...c, name } : c))); setEditingId(null); };
+      const handleSave = () => { onSave(cats); onClose(); };
+
+      return html`<${ModalOverlay} onClose=${onClose}>
+        <div className="p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-bold text-ink dark:text-ink-dark">Categorías</h2>
+            <${HapticButton} onClick=${onClose} className="p-2 rounded-xl hover:bg-surface dark:hover:bg-surface-dark transition-colors">
+              <${X} size=${20} strokeWidth=${1.5} className="text-muted dark:text-muted-dark" />
+            </${HapticButton}>
+          </div>
+
+          <div className="space-y-2 mb-4 max-h-60 overflow-y-auto">
+            <${AnimatePresence} mode="popLayout">
+              ${cats.map((cat) => html`
+                <${MDiv} key=${cat.id} layout
+                  initial=${{ opacity: 0, y: 10 }} animate=${{ opacity: 1, y: 0 }} exit=${{ opacity: 0, x: -40 }}
+                  className="flex items-center gap-3 bg-surface dark:bg-surface-dark rounded-2xl px-4 py-3 theme-transition">
+                  <${LucideIcon} name=${cat.icon} size=${18} strokeWidth=${1.5} className="text-muted dark:text-muted-dark shrink-0" />
+                  ${editingId === cat.id
+          ? html`<input autoFocus type="text" defaultValue=${cat.name}
+                        onBlur=${(e) => handleRename(cat.id, e.target.value)}
+                        onKeyDown=${(e) => e.key === 'Enter' && handleRename(cat.id, e.target.value)}
+                        className="flex-1 bg-transparent text-sm font-medium text-ink dark:text-ink-dark outline-none" />`
+          : html`<span className="flex-1 text-sm font-medium text-ink dark:text-ink-dark cursor-pointer"
+                        onClick=${() => setEditingId(cat.id)}>${cat.name}</span>`}
+                  <${HapticButton} onClick=${() => handleDelete(cat.id)} className="p-1.5 rounded-lg hover:bg-divider dark:hover:bg-divider-dark">
+                    <${Trash2} size=${14} strokeWidth=${1.5} className="text-muted dark:text-muted-dark" />
+                  </${HapticButton}>
+                </${MDiv}>
+              `)}
+            </${AnimatePresence}>
+          </div>
+
+          <${AnimatePresence}>
+            ${showAdd ? html`
+              <${MDiv} initial=${{ opacity: 0, height: 0 }} animate=${{ opacity: 1, height: 'auto' }} exit=${{ opacity: 0, height: 0 }} className="overflow-hidden">
+                <div className="bg-surface dark:bg-surface-dark rounded-2xl p-4 mb-4 space-y-3 theme-transition">
+                  <input autoFocus type="text" value=${newName}
+                    onChange=${(e) => setNewName(e.target.value)}
+                    onKeyDown=${(e) => e.key === 'Enter' && handleAdd()}
+                    placeholder="Nombre de la categoría"
+                    className="w-full bg-surface-elevated dark:bg-surface-elevated-dark rounded-xl px-3 py-2.5 text-sm text-ink dark:text-ink-dark outline-none focus:ring-2 focus:ring-ink/10 dark:focus:ring-ink-dark/10 theme-transition" />
+                  <div className="flex flex-wrap gap-1.5">
+                    ${ICON_OPTIONS.map((icon) => html`
+                      <${HapticButton} key=${icon} onClick=${() => setNewIcon(icon)}
+                        className=${`p-2 rounded-xl transition-colors ${newIcon === icon ? 'bg-ink dark:bg-ink-dark text-white dark:text-surface-dark' : 'bg-surface-elevated dark:bg-surface-elevated-dark text-muted dark:text-muted-dark hover:bg-divider dark:hover:bg-divider-dark'}`}>
+                        <${LucideIcon} name=${icon} size=${16} strokeWidth=${1.5} />
+                      </${HapticButton}>
+                    `)}
+                  </div>
+                  <div className="flex gap-2">
+                    <${HapticButton} onClick=${() => setShowAdd(false)} className="flex-1 py-2.5 rounded-xl bg-divider dark:bg-divider-dark text-ink dark:text-ink-dark text-sm font-medium">Cancelar</${HapticButton}>
+                    <${HapticButton} onClick=${handleAdd} disabled=${!newName.trim()} className="flex-1 py-2.5 rounded-xl bg-ink dark:bg-ink-dark text-white dark:text-surface-dark text-sm font-medium">Agregar</${HapticButton}>
+                  </div>
+                </div>
+              </${MDiv}>
+            ` : html`
+              <${HapticButton} onClick=${() => setShowAdd(true)}
+                className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl bg-surface dark:bg-surface-dark text-muted dark:text-muted-dark text-sm font-medium hover:bg-divider dark:hover:bg-divider-dark transition-colors mb-4">
+                <${Plus} size=${16} strokeWidth=${1.5} /> Nueva Categoría
+              </${HapticButton}>
+            `}
+          </${AnimatePresence}>
+
+          <${HapticButton} onClick=${handleSave} className="w-full bg-ink dark:bg-ink-dark text-white dark:text-surface-dark font-semibold py-4 rounded-2xl text-base theme-transition">
+            Guardar
+          </${HapticButton}>
+        </div>
+      </${ModalOverlay}>`;
+    };
+
+    // ═══════════════════════════════════════════════════════════════
+    // MODAL: Filtros
+    // ═══════════════════════════════════════════════════════════════
+
+    const FiltersModal = ({ filters, categories, onApply, onClose }) => {
+      const [dateFrom, setDateFrom] = useState(filters.dateFrom || '');
+      const [dateTo, setDateTo] = useState(filters.dateTo || '');
+      const [categoryId, setCategoryId] = useState(filters.categoryId || '');
+      const [onlyRecurring, setOnlyRecurring] = useState(filters.onlyRecurring || false);
+      const handleApply = () => { onApply({ dateFrom, dateTo, categoryId, onlyRecurring }); onClose(); };
+      const handleClear = () => { onApply({ dateFrom: '', dateTo: '', categoryId: '', onlyRecurring: false }); onClose(); };
+
+      const inputCls = "w-full bg-surface dark:bg-surface-dark rounded-2xl px-4 py-3.5 text-ink dark:text-ink-dark font-medium outline-none focus:ring-2 focus:ring-ink/10 dark:focus:ring-ink-dark/10 theme-transition";
+
+      return html`<${ModalOverlay} onClose=${onClose}>
+        <div className="p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-bold text-ink dark:text-ink-dark">Filtros</h2>
+            <${HapticButton} onClick=${onClose} className="p-2 rounded-xl hover:bg-surface dark:hover:bg-surface-dark transition-colors">
+              <${X} size=${20} strokeWidth=${1.5} className="text-muted dark:text-muted-dark" />
+            </${HapticButton}>
+          </div>
+          <div className="space-y-4">
+            <div>
+              <label className="text-xs font-medium text-muted dark:text-muted-dark uppercase tracking-wider mb-1.5 block">Desde</label>
+              <input type="date" value=${dateFrom} onChange=${(e) => setDateFrom(e.target.value)} className=${inputCls} />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted dark:text-muted-dark uppercase tracking-wider mb-1.5 block">Hasta</label>
+              <input type="date" value=${dateTo} onChange=${(e) => setDateTo(e.target.value)} className=${inputCls} />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted dark:text-muted-dark uppercase tracking-wider mb-1.5 block">Categoría</label>
+              <select value=${categoryId} onChange=${(e) => setCategoryId(e.target.value)} className=${inputCls + ' appearance-none'}>
+                <option value="">Todas</option>
+                ${categories.map((c) => html`<option key=${c.id} value=${c.id}>${c.name}</option>`)}
+              </select>
+            </div>
+            <div className="flex items-center justify-between bg-surface dark:bg-surface-dark rounded-2xl px-4 py-3.5 theme-transition">
+              <span className="text-sm font-medium text-ink dark:text-ink-dark">Solo Recurrentes</span>
+              <${Toggle} checked=${onlyRecurring} onChange=${setOnlyRecurring} />
+            </div>
+          </div>
+          <div className="flex gap-3 mt-6">
+            <${HapticButton} onClick=${handleClear} className="flex-1 py-4 rounded-2xl bg-surface dark:bg-surface-dark text-ink dark:text-ink-dark font-semibold text-base theme-transition">Limpiar</${HapticButton}>
+            <${HapticButton} onClick=${handleApply} className="flex-1 py-4 rounded-2xl bg-ink dark:bg-ink-dark text-white dark:text-surface-dark font-semibold text-base theme-transition">Aplicar</${HapticButton}>
+          </div>
+        </div>
+      </${ModalOverlay}>`;
+    };
+
+    // ═══════════════════════════════════════════════════════════════
+    // Summary Card (dark-aware)
+    // ═══════════════════════════════════════════════════════════════
+
+    const SummaryCard = ({ label, amount, icon, subtitle }) => {
+      return html`<${MDiv} layout className="bg-surface-elevated dark:bg-surface-elevated-dark rounded-3xl p-5 shadow-sm theme-transition">
+        <div className="flex items-start justify-between mb-3">
+          <span className="text-xs font-medium text-muted dark:text-muted-dark uppercase tracking-wider">${label}</span>
+          <div className="w-8 h-8 bg-surface dark:bg-surface-dark rounded-xl flex items-center justify-center theme-transition">
+            <${LucideIcon} name=${icon} size=${16} strokeWidth=${1.5} className="text-muted dark:text-muted-dark" />
+          </div>
+        </div>
+        <p className="text-2xl font-bold text-ink dark:text-ink-dark tracking-tight">${formatCOP(amount)}</p>
+        ${subtitle && html`<p className="text-xs text-muted dark:text-muted-dark mt-1">${subtitle}</p>`}
+      </${MDiv}>`;
+    };
+
+    // ═══════════════════════════════════════════════════════════════
+    // ACORDEÓN DE CATEGORÍAS — Nuevo sistema de listado agrupado
+    // ═══════════════════════════════════════════════════════════════
+
+    // Fila individual de gasto dentro del acordeón
+    const ExpenseRow = ({ expense, onEdit, onDelete }) => {
+      const dateObj = parseLocalDate(expense.date);
+      const dateLabel = `${dateObj.getDate()} ${getMesNombre(dateObj.getMonth()).slice(0, 3)}`;
+
+      return html`<${MDiv} layout
+        initial=${{ opacity: 0, y: 8 }} animate=${{ opacity: 1, y: 0 }} exit=${{ opacity: 0, y: -8 }}
+        transition=${{ type: 'spring', stiffness: 400, damping: 30 }}
+        className="flex items-center gap-3 py-3 px-1 border-b border-divider/30 dark:border-divider-dark/30 last:border-0">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <p className="text-sm font-medium text-ink dark:text-ink-dark truncate">${expense.name}</p>
+            ${expense.recurring && html`<${RefreshCw} size=${11} strokeWidth=${1.5} className="text-muted dark:text-muted-dark shrink-0" />`}
+          </div>
+          <p className="text-xs text-muted dark:text-muted-dark mt-0.5">${dateLabel}</p>
+        </div>
+        <span className="text-sm font-semibold text-ink dark:text-ink-dark shrink-0">${formatCOP(expense.amount)}</span>
+        <div className="flex items-center gap-0.5 shrink-0">
+          <${HapticButton} onClick=${() => onEdit(expense)} className="p-1.5 rounded-lg hover:bg-surface dark:hover:bg-surface-dark transition-colors">
+            <${Pencil} size=${13} strokeWidth=${1.5} className="text-muted dark:text-muted-dark" />
+          </${HapticButton}>
+          <${HapticButton} onClick=${() => onDelete(expense.id)} className="p-1.5 rounded-lg hover:bg-surface dark:hover:bg-surface-dark transition-colors">
+            <${Trash2} size=${13} strokeWidth=${1.5} className="text-muted dark:text-muted-dark" />
+          </${HapticButton}>
+        </div>
+      </${MDiv}>`;
+    };
+
+    // Grupo de categoría con acordeón desplegable
+    const CategoryAccordion = ({ category, expenses, onEdit, onDelete }) => {
+      const [open, setOpen] = useState(false);
+      const total = useMemo(() => expenses.reduce((s, e) => s + e.amount, 0), [expenses]);
+      const count = expenses.length;
+
+      return html`<${MDiv} layout className="bg-surface-elevated dark:bg-surface-elevated-dark rounded-2xl overflow-hidden shadow-sm theme-transition">
+        <!-- Cabecera: clic para expandir -->
+        <${HapticButton} onClick=${() => setOpen(!open)}
+          className="w-full flex items-center gap-3 px-4 py-4 text-left">
+          <div className="w-10 h-10 bg-surface dark:bg-surface-dark rounded-xl flex items-center justify-center shrink-0 theme-transition">
+            <${LucideIcon} name=${category.icon} size=${18} strokeWidth=${1.5} className="text-ink dark:text-ink-dark" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-ink dark:text-ink-dark truncate">${category.name}</p>
+            <p className="text-xs text-muted dark:text-muted-dark">${count} gasto${count !== 1 ? 's' : ''}</p>
+          </div>
+          <span className="text-base font-bold text-ink dark:text-ink-dark shrink-0 mr-2">${formatCOP(total)}</span>
+          <${MDiv}
+            animate=${{ rotate: open ? 180 : 0 }}
+            transition=${{ duration: 0.25 }}
+            className="shrink-0">
+            <${ChevronDown} size=${18} strokeWidth=${1.5} className="text-muted dark:text-muted-dark" />
+          </${MDiv}>
+        </${HapticButton}>
+
+        <!-- Dropdown con animación de height -->
+        <${AnimatePresence}>
+          ${open && html`
+            <${MDiv}
+              initial=${{ height: 0, opacity: 0 }}
+              animate=${{ height: 'auto', opacity: 1 }}
+              exit=${{ height: 0, opacity: 0 }}
+              transition=${{ type: 'spring', stiffness: 300, damping: 30 }}
+              className="overflow-hidden">
+              <div className="px-4 pb-3 pt-0">
+                <div className="border-t border-divider/40 dark:border-divider-dark/40 pt-2">
+                  <${AnimatePresence} mode="popLayout">
+                    ${expenses.map((e) => html`
+                      <${ExpenseRow} key=${e.id} expense=${e} onEdit=${onEdit} onDelete=${onDelete} />
+                    `)}
+                  </${AnimatePresence}>
+                </div>
+              </div>
+            </${MDiv}>
+          `}
+        </${AnimatePresence}>
+      </${MDiv}>`;
+    };
+
+    // Lista agrupada por categorías
+    const GroupedExpenseList = ({ expenses, categories, onEdit, onDelete }) => {
+      // Agrupar gastos por categoría (solo las que tienen gastos)
+      const grouped = useMemo(() => {
+        const map = {};
+        expenses.forEach((e) => {
+          if (!map[e.categoryId]) map[e.categoryId] = [];
+          map[e.categoryId].push(e);
+        });
+        // Ordenar cada grupo por fecha desc
+        Object.values(map).forEach((arr) => arr.sort((a, b) => (b.date > a.date ? 1 : -1)));
+        // Retornar solo categorías con gastos, ordenadas por total desc
+        return categories
+          .filter((c) => map[c.id] && map[c.id].length > 0)
+          .map((c) => ({ category: c, expenses: map[c.id] }))
+          .sort((a, b) => {
+            const tA = a.expenses.reduce((s, e) => s + e.amount, 0);
+            const tB = b.expenses.reduce((s, e) => s + e.amount, 0);
+            return tB - tA;
+          });
+      }, [expenses, categories]);
+
+      if (grouped.length === 0) {
+        return html`<${MDiv} initial=${{ opacity: 0 }} animate=${{ opacity: 1 }} className="text-center py-12">
+          <${Inbox} size=${40} strokeWidth=${1} className="text-muted/30 dark:text-muted-dark/30 mx-auto mb-3" />
+          <p className="text-sm text-muted dark:text-muted-dark font-medium">No hay gastos</p>
+          <p className="text-xs text-muted/60 dark:text-muted-dark/60 mt-1">Toca + para agregar uno</p>
+        </${MDiv}>`;
+      }
+
+      return html`<${LayoutGroup}>
+        <div className="space-y-2.5">
+          <${AnimatePresence} mode="popLayout">
+            ${grouped.map(({ category, expenses: exps }) => html`
+              <${CategoryAccordion} key=${category.id}
+                category=${category} expenses=${exps}
+                onEdit=${onEdit} onDelete=${onDelete} />
+            `)}
+          </${AnimatePresence}>
+        </div>
+      </${LayoutGroup}>`;
+    };
+
+    // ═══════════════════════════════════════════════════════════════
+    // Tab Selector (dark-aware)
+    // ═══════════════════════════════════════════════════════════════
+
+    const TAB_VIEWS = [
+      { id: 'month', label: 'Mes' },
+      { id: 'fortnight', label: 'Quincena' },
+      { id: 'year', label: 'Año' },
+    ];
+
+    const TabSelector = ({ activeTab, onChangeTab }) => {
+      return html`<div className="flex bg-surface-elevated dark:bg-surface-elevated-dark rounded-2xl p-1 shadow-sm theme-transition">
+        ${TAB_VIEWS.map((tab) => html`
+          <${HapticButton} key=${tab.id} onClick=${() => onChangeTab(tab.id)}
+            className=${`relative flex-1 py-2.5 text-sm font-medium rounded-xl transition-colors ${activeTab === tab.id ? 'text-white dark:text-surface-dark' : 'text-muted dark:text-muted-dark'}`}>
+            ${activeTab === tab.id && html`
+              <${MDiv} layoutId="activeTab" className="absolute inset-0 bg-ink dark:bg-ink-dark rounded-xl theme-transition"
+                transition=${{ type: 'spring', stiffness: 400, damping: 30 }} />
+            `}
+            <span className="relative z-10">${tab.label}</span>
+          </${HapticButton}>
+        `)}
+      </div>`;
+    };
+
+    // ═══════════════════════════════════════════════════════════════
+    // Barra de categorías (gráfico horizontal)
+    // ═══════════════════════════════════════════════════════════════
+
+    const CategoryBars = ({ expenses, categories }) => {
+      const breakdown = useMemo(() => {
+        const map = {};
+        expenses.forEach((e) => { map[e.categoryId] = (map[e.categoryId] || 0) + e.amount; });
+        return categories.map((c) => ({ ...c, total: map[c.id] || 0 })).filter((c) => c.total > 0).sort((a, b) => b.total - a.total);
+      }, [expenses, categories]);
+      const grandTotal = breakdown.reduce((s, b) => s + b.total, 0) || 1;
+      if (breakdown.length === 0) return null;
+
+      return html`<div className="space-y-3">
+        <h3 className="text-xs font-medium text-muted dark:text-muted-dark uppercase tracking-wider">Distribución</h3>
+        <div className="space-y-2.5">
+          ${breakdown.map((cat) => html`
+            <${MDiv} key=${cat.id} layout className="space-y-1">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <${LucideIcon} name=${cat.icon} size=${14} strokeWidth=${1.5} className="text-muted dark:text-muted-dark" />
+                  <span className="text-xs font-medium text-ink dark:text-ink-dark">${cat.name}</span>
+                </div>
+                <span className="text-xs font-semibold text-ink dark:text-ink-dark">${((cat.total / grandTotal) * 100).toFixed(1)}%</span>
+              </div>
+              <div className="h-1.5 bg-surface dark:bg-surface-dark rounded-full overflow-hidden theme-transition">
+                <${MDiv} initial=${{ width: 0 }} animate=${{ width: `${(cat.total / grandTotal) * 100}%` }}
+                  transition=${{ duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
+                  className="h-full bg-ink dark:bg-ink-dark rounded-full theme-transition" />
+              </div>
+            </${MDiv}>
+          `)}
+        </div>
+      </div>`;
+    };
+
+    // ═══════════════════════════════════════════════════════════════
+    // Vista Anual (dark-aware)
+    // ═══════════════════════════════════════════════════════════════
+
+    const YearView = ({ expenses, categories, year }) => {
+      const recurringExpenses = expenses.filter((e) => e.recurring);
+      const annualRecurring = recurringExpenses.reduce((s, e) => s + e.amount * 12, 0);
+      const yearExpenses = expenses.filter((e) => parseLocalDate(e.date).getFullYear() === year);
+      const annualTotal = yearExpenses.reduce((s, e) => s + e.amount, 0);
+      const monthlyTotals = useMemo(() => {
+        const arr = Array(12).fill(0);
+        yearExpenses.forEach((e) => { arr[parseLocalDate(e.date).getMonth()] += e.amount; });
+        return arr;
+      }, [yearExpenses]);
+      const maxMonth = Math.max(...monthlyTotals, 1);
+
+      return html`<${MDiv}
+        initial=${{ opacity: 0, x: 40 }} animate=${{ opacity: 1, x: 0 }} exit=${{ opacity: 0, x: -40 }}
+        transition=${{ type: 'spring', stiffness: 300, damping: 30 }}
+        className="space-y-5">
+
+        <div className="grid grid-cols-2 gap-3">
+          <${SummaryCard} label="Total Año" amount=${annualTotal} icon="Calendar" subtitle=${`${year}`} />
+          <${SummaryCard} label="Recurrente / Año" amount=${annualRecurring} icon="RefreshCw" subtitle="Proyección 12 meses" />
+        </div>
+
+        <div className="bg-surface-elevated dark:bg-surface-elevated-dark rounded-3xl p-5 shadow-sm theme-transition">
+          <h3 className="text-xs font-medium text-muted dark:text-muted-dark uppercase tracking-wider mb-4">Gastos Mensuales — ${year}</h3>
+          <div className="flex items-end gap-1.5 h-32">
+            ${monthlyTotals.map((total, i) => html`
+              <div key=${i} className="flex-1 flex flex-col items-center gap-1">
+                <${MDiv} initial=${{ height: 0 }}
+                  animate=${{ height: `${Math.max((total / maxMonth) * 100, 2)}%` }}
+                  transition=${{ duration: 0.5, delay: i * 0.03 }}
+                  className=${`w-full rounded-lg ${total > 0 ? 'bg-ink dark:bg-ink-dark' : 'bg-divider dark:bg-divider-dark'}`} />
+                <span className="text-[9px] text-muted dark:text-muted-dark font-medium">${getMesNombre(i).slice(0, 3)}</span>
+              </div>
+            `)}
+          </div>
+        </div>
+
+        ${recurringExpenses.length > 0 && html`
+          <div className="bg-surface-elevated dark:bg-surface-elevated-dark rounded-3xl p-5 shadow-sm theme-transition">
+            <h3 className="text-xs font-medium text-muted dark:text-muted-dark uppercase tracking-wider mb-3">Gastos Recurrentes</h3>
+            <div className="space-y-2.5">
+              ${recurringExpenses.map((e) => {
+        const cat = categories.find((c) => c.id === e.categoryId);
+        return html`<div key=${e.id} className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-surface dark:bg-surface-dark rounded-xl flex items-center justify-center theme-transition">
+                    <${LucideIcon} name=${cat?.icon || 'Circle'} size=${14} strokeWidth=${1.5} className="text-ink dark:text-ink-dark" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-ink dark:text-ink-dark truncate">${e.name}</p>
+                    <p className="text-xs text-muted dark:text-muted-dark">${cat?.name} · Mensual</p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className="text-sm font-semibold text-ink dark:text-ink-dark">${formatCOP(e.amount)}/mes</p>
+                    <p className="text-[10px] text-muted dark:text-muted-dark">${formatCOP(e.amount * 12)}/año</p>
+                  </div>
+                </div>`;
+      })}
+            </div>
+          </div>
+        `}
+      </${MDiv}>`;
+    };
+
+    // ═══════════════════════════════════════════════════════════════
+    // APP PRINCIPAL
+    // ═══════════════════════════════════════════════════════════════
+
+    const App = () => {
+      const [user, setUser] = useState(null);
+      const [isInitialLoading, setIsInitialLoading] = useState(true);
+      const [expenses, setExpenses] = useState([]);
+      const [categories, setCategories] = useState(DEFAULT_CATEGORIES);
+
+      const [activeTab, setActiveTab] = useState('month');
+      const [showExpenseModal, setShowExpenseModal] = useState(false);
+      const [editingExpense, setEditingExpense] = useState(null);
+      const [showCategories, setShowCategories] = useState(false);
+      const [showFilters, setShowFilters] = useState(false);
+      const [filters, setFilters] = useState({ dateFrom: '', dateTo: '', categoryId: '', onlyRecurring: false });
+      const [selectedFortnight, setSelectedFortnight] = useState(1);
+
+      const now = new Date();
+      const currentMonth = now.getMonth();
+      const currentYear = now.getFullYear();
+
+      // Auth Listener
+      useEffect(() => {
+        const unsubscribe = onAuthStateChanged(auth, (u) => {
+          setUser(u);
+          setIsInitialLoading(false);
+        });
+        return unsubscribe;
+      }, []);
+
+      // Data Synchronization (Firestore -> State)
+      useEffect(() => {
+        if (!user) {
+          setExpenses([]);
+          setCategories(DEFAULT_CATEGORIES);
+          return;
+        }
+
+        // Listen for Categories
+        const qCats = query(collection(db, `users/${user.uid}/categories`));
+        const unsubCats = onSnapshot(qCats, (snap) => {
+          if (snap.empty) {
+            // Check if we need to migrate from local storage
+            const localCats = loadState('balance_categories', null);
+            if (localCats) {
+              const batch = writeBatch(db);
+              localCats.forEach(cat => {
+                const ref = doc(db, `users/${user.uid}/categories`, cat.id);
+                batch.set(ref, cat);
+              });
+              batch.commit().catch(err => console.error("Migration error (cats):", err));
+            } else {
+              setCategories(DEFAULT_CATEGORIES);
+            }
+          } else {
+            const list = [];
+            snap.forEach(doc => list.push({ ...doc.data(), id: doc.id }));
+            setCategories(list);
+          }
+        });
+
+        // Listen for Expenses
+        const qExps = query(collection(db, `users/${user.uid}/expenses`));
+        const unsubExps = onSnapshot(qExps, (snap) => {
+          if (snap.empty) {
+            const localExps = loadState('balance_expenses', null);
+            if (localExps) {
+              const batch = writeBatch(db);
+              localExps.forEach(exp => {
+                const ref = doc(db, `users/${user.uid}/expenses`, exp.id);
+                batch.set(ref, exp);
+              });
+              batch.commit().catch(err => console.error("Migration error (exps):", err));
+            } else {
+              setExpenses([]);
+            }
+          } else {
+            const list = [];
+            snap.forEach(doc => list.push({ ...doc.data(), id: doc.id }));
+            list.sort((a, b) => (b.date > a.date ? 1 : -1));
+            setExpenses(list);
+          }
+        });
+
+        return () => {
+          unsubCats();
+          unsubExps();
+        };
+      }, [user]);
+
+      const handleSaveExpense = useCallback(async (expense) => {
+        if (!user) return;
+        try {
+          const ref = doc(db, `users/${user.uid}/expenses`, expense.id);
+          await setDoc(ref, expense);
+        } catch (err) {
+          console.error("Error saving expense:", err);
+        }
+      }, [user]);
+
+      const handleDeleteExpense = useCallback(async (id) => {
+        if (!user) return;
+        try {
+          await deleteDoc(doc(db, `users/${user.uid}/expenses`, id));
+        } catch (err) {
+          console.error("Error deleting expense:", err);
+        }
+      }, [user]);
+
+      const handleSaveCategories = useCallback(async (newCategories) => {
+        if (!user) return;
+        try {
+          const batch = writeBatch(db);
+
+          // Delete old cats first (or just sync)
+          // For simplicity in this UI, we just overwrite/update
+          newCategories.forEach(cat => {
+            const ref = doc(db, `users/${user.uid}/categories`, cat.id);
+            batch.set(ref, cat);
+          });
+
+          // Identify removed cats
+          const currentIds = new Set(newCategories.map(c => c.id));
+          categories.forEach(oldCat => {
+            if (!currentIds.has(oldCat.id)) {
+              batch.delete(doc(db, `users/${user.uid}/categories`, oldCat.id));
+            }
+          });
+
+          await batch.commit();
+        } catch (err) {
+          console.error("Error saving categories:", err);
+        }
+      }, [user, categories]);
+
+      const handleEditExpense = useCallback((expense) => {
+        setEditingExpense(expense);
+        setShowExpenseModal(true);
+      }, []);
+
+      const handleLogout = async () => {
+        try {
+          await signOut(auth);
+          // Optional: clear local storage to force fresh sync next time
+          localStorage.removeItem('balance_expenses');
+          localStorage.removeItem('balance_categories');
+        } catch (err) {
+          console.error("Logout error:", err);
+        }
+      };
+
+      // Filtrado según tab activo + filtros del usuario
+      const filteredExpenses = useMemo(() => {
+        let result = [...expenses];
+        if (activeTab === 'month') {
+          result = result.filter((e) => { const d = parseLocalDate(e.date); return d.getMonth() === currentMonth && d.getFullYear() === currentYear; });
+        } else if (activeTab === 'fortnight') {
+          result = result.filter((e) => { const d = parseLocalDate(e.date); return d.getMonth() === currentMonth && d.getFullYear() === currentYear && getQuincena(e.date) === selectedFortnight; });
+        } else if (activeTab === 'year') {
+          result = result.filter((e) => parseLocalDate(e.date).getFullYear() === currentYear);
+        }
+        if (filters.dateFrom) result = result.filter((e) => e.date >= filters.dateFrom);
+        if (filters.dateTo) result = result.filter((e) => e.date <= filters.dateTo);
+        if (filters.categoryId) result = result.filter((e) => e.categoryId === filters.categoryId);
+        if (filters.onlyRecurring) result = result.filter((e) => e.recurring);
+        result.sort((a, b) => (b.date > a.date ? 1 : -1));
+        return result;
+      }, [expenses, activeTab, currentMonth, currentYear, selectedFortnight, filters]);
+
+      const totalFiltered = useMemo(() => filteredExpenses.reduce((s, e) => s + e.amount, 0), [filteredExpenses]);
+      const recurringTotal = useMemo(() => filteredExpenses.filter((e) => e.recurring).reduce((s, e) => s + e.amount, 0), [filteredExpenses]);
+      const hasActiveFilters = filters.dateFrom || filters.dateTo || filters.categoryId || filters.onlyRecurring;
+
+      // Initial Auth Check
+      if (isInitialLoading) {
+        return html`<div className="min-h-screen flex items-center justify-center bg-surface dark:bg-surface-dark">
+          <${Loader2} size=${40} className="animate-spin text-ink dark:text-ink-dark" />
+        </div>`;
+      }
+
+      // Auth guard
+      if (!user) return html`<${AuthScreen} loading=${isInitialLoading} />`;
+
+      return html`<div className="min-h-screen bg-surface dark:bg-surface-dark pb-24 theme-transition">
+        <!-- Header -->
+        <div className="sticky top-0 z-40 bg-surface/80 dark:bg-surface-dark/80 backdrop-blur-xl border-b border-divider/50 dark:border-divider-dark/50 theme-transition">
+          <div className="max-w-lg mx-auto px-5 py-4 flex items-center justify-between">
+            <div>
+              <h1 className="text-xl font-bold text-ink dark:text-ink-dark tracking-tight">Balance</h1>
+              <p className="text-xs text-muted dark:text-muted-dark">${getMesNombre(currentMonth)} ${currentYear}</p>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <${HapticButton} onClick=${() => setShowFilters(true)} className=${`p-2.5 rounded-xl transition-colors ${hasActiveFilters ? 'bg-ink dark:bg-ink-dark' : 'hover:bg-surface-elevated dark:hover:bg-surface-elevated-dark'}`}>
+                <${SlidersHorizontal} size=${18} strokeWidth=${1.5} className=${hasActiveFilters ? 'text-white dark:text-surface-dark' : 'text-ink dark:text-ink-dark'} />
+              </${HapticButton}>
+              <${HeaderMenu}
+                onOpenCategories=${() => setShowCategories(true)}
+                onLogout=${handleLogout} />
+            </div>
+          </div>
+        </div>
+
+        <!-- Content -->
+        <div className="max-w-lg mx-auto px-5 pt-5 space-y-5">
+          <${TabSelector} activeTab=${activeTab} onChangeTab=${setActiveTab} />
+
+          <!-- Fortnight selector -->
+          <${AnimatePresence} mode="wait">
+            ${activeTab === 'fortnight' && html`
+              <${MDiv} key="fort-sel" initial=${{ opacity: 0, height: 0 }} animate=${{ opacity: 1, height: 'auto' }} exit=${{ opacity: 0, height: 0 }} className="overflow-hidden">
+                <div className="flex gap-2">
+                  ${[1, 2].map((q) => html`
+                    <${HapticButton} key=${q} onClick=${() => setSelectedFortnight(q)}
+                      className=${`flex-1 py-2.5 rounded-xl text-sm font-medium transition-colors theme-transition ${selectedFortnight === q
+          ? 'bg-ink dark:bg-ink-dark text-white dark:text-surface-dark'
+          : 'bg-surface-elevated dark:bg-surface-elevated-dark text-muted dark:text-muted-dark'
+        }`}>
+                      ${q === 1 ? '1ᵃ Quincena (1-15)' : '2ᵃ Quincena (16-31)'}
+                    </${HapticButton}>
+                  `)}
+                </div>
+              </${MDiv}>
+            `}
+          </${AnimatePresence}>
+
+          <!-- Main content por tab -->
+          <${AnimatePresence} mode="wait">
+            ${activeTab === 'year' ? html`
+              <${YearView} key="year" expenses=${expenses} categories=${categories} year=${currentYear} />
+            ` : html`
+              <${MDiv} key=${activeTab + '-' + selectedFortnight}
+                initial=${{ opacity: 0, x: 30 }} animate=${{ opacity: 1, x: 0 }} exit=${{ opacity: 0, x: -30 }}
+                transition=${{ type: 'spring', stiffness: 300, damping: 30 }}
+                className="space-y-5">
+
+                <!-- Summary -->
+                <div className="grid grid-cols-2 gap-3">
+                  <${SummaryCard}
+                    label=${activeTab === 'month' ? 'Total Mes' : `Quincena ${selectedFortnight}`}
+                    amount=${totalFiltered}
+                    icon="TrendingDown"
+                    subtitle=${`${filteredExpenses.length} gasto${filteredExpenses.length !== 1 ? 's' : ''}`} />
+                  <${SummaryCard}
+                    label="Recurrentes"
+                    amount=${recurringTotal}
+                    icon="RefreshCw"
+                    subtitle=${`Gastos fijos`} />
+                </div>
+
+                <!-- Distribución por categoría -->
+                <div className="bg-surface-elevated dark:bg-surface-elevated-dark rounded-3xl p-5 shadow-sm theme-transition">
+                  <${CategoryBars} expenses=${filteredExpenses} categories=${categories} />
+                  ${filteredExpenses.length === 0 && html`
+                    <div className="text-center py-6">
+                      <${Inbox} size=${32} strokeWidth=${1} className="text-muted/40 dark:text-muted-dark/40 mx-auto mb-2" />
+                      <p className="text-sm text-muted dark:text-muted-dark">Sin gastos registrados</p>
+                    </div>
+                  `}
+                </div>
+
+                <!-- Lista agrupada -->
+                <div>
+                  <h3 className="text-xs font-medium text-muted dark:text-muted-dark uppercase tracking-wider mb-3">
+                    Por Categoría ${hasActiveFilters ? '(Filtrado)' : ''}
+                  </h3>
+                  <${GroupedExpenseList}
+                    expenses=${filteredExpenses}
+                    categories=${categories}
+                    onEdit=${handleEditExpense}
+                    onDelete=${handleDeleteExpense} />
+                </div>
+              </${MDiv}>
+            `}
+          </${AnimatePresence}>
+        </div>
+
+        <!-- FAB -->
+        <${MDiv} className="fixed bottom-6 right-6 z-40"
+          initial=${{ scale: 0 }} animate=${{ scale: 1 }} transition=${{ delay: 0.3, type: 'spring' }}>
+          <${HapticButton}
+            onClick=${() => { setEditingExpense(null); setShowExpenseModal(true); }}
+            className="w-14 h-14 bg-ink dark:bg-ink-dark text-white dark:text-surface-dark rounded-2xl shadow-lg shadow-ink/20 dark:shadow-black/40 flex items-center justify-center theme-transition">
+            <${Plus} size=${24} strokeWidth=${2} />
+          </${HapticButton}>
+        </${MDiv}>
+
+        <!-- Modales -->
+        <${AnimatePresence}>
+          ${showExpenseModal && html`<${ExpenseModal} key="expense-modal" expense=${editingExpense} categories=${categories} onSave=${handleSaveExpense} onClose=${() => { setShowExpenseModal(false); setEditingExpense(null); }} />`}
+          ${showCategories && html`<${CategoriesModal} key="categories-modal" categories=${categories} onSave=${handleSaveCategories} onClose=${() => setShowCategories(false)} />`}
+          ${showFilters && html`<${FiltersModal} key="filters-modal" filters=${filters} categories=${categories} onApply=${setFilters} onClose=${() => setShowFilters(false)} />`}
+        </${AnimatePresence}>
+      </div>`;
+    };
+
+    // ─── Montar con ThemeProvider ────────────────────────────────
+    createRoot(document.getElementById('root')).render(
+      html`<${ThemeProvider}><${App} /></${ThemeProvider}>`
+    );
+  </script>
+</body>
+
+</html>
