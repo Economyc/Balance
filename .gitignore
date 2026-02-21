@@ -1,2 +1,4 @@
 *.bak
 .firebase/
+node_modules/
+package-lock.json

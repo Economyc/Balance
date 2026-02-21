@@ -14,27 +14,8 @@
   <!-- Favicon Minimalista -->
   <link rel="icon" type="image/png" href="favicon.png" />
 
-  <!-- Tailwind CSS CDN -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      darkMode: 'class',
-      theme: {
-        extend: {
-          colors: {
-            // Light
-            surface: { DEFAULT: '#F5F5F7', dark: '#121212' },
-            ink: { DEFAULT: '#1D1D1F', dark: '#F5F5F7' },
-            muted: { DEFAULT: '#86868B', dark: '#8E8E93' },
-            'surface-elevated': { DEFAULT: '#FFFFFF', dark: '#1C1C1E' },
-            divider: { DEFAULT: '#E5E5E7', dark: '#2C2C2E' },
-          },
-          fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
-          borderRadius: { '2xl': '1rem', '3xl': '1.5rem' },
-        },
-      },
-    };
-  </script>
+  <!-- Tailwind CSS Estático (Producción) -->
+  <link rel="stylesheet" href="style.css" />
 
   <!-- ESM Import Map -->
   <script type="importmap">
