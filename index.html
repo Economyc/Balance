@@ -1265,9 +1265,20 @@
         const base = [...expenses];
         const recurring = expenses.filter((e) => e.recurring);
 
-        // Determinar el mes/año objetivo según la vista
+        // Determinar el mes/año objetivo según la vista activa
         let targetMonth = currentMonth;
         let targetYear = currentYear;
+
+        // Si hay filtro de fecha activo, extender el target hasta ese mes
+        // para que los recurrentes se generen en el rango filtrado
+        if (filters.dateTo) {
+          const fy = parseInt(filters.dateTo.slice(0, 4));
+          const fm = parseInt(filters.dateTo.slice(5, 7)) - 1;
+          if (fy > targetYear || (fy === targetYear && fm > targetMonth)) {
+            targetYear = fy;
+            targetMonth = fm;
+          }
+        }
 
         recurring.forEach((e) => {
           const orig = parseLocalDate(e.date);
@@ -1276,7 +1287,7 @@
           const origDay = orig.getDate();
 
           // Generar copias virtuales para cada mes desde el siguiente
-          // al original hasta el mes actual (inclusive)
+          // al original hasta el mes target (inclusive)
           let m = origMonth;
           let y = origYear;
 
@@ -1308,7 +1319,7 @@
         });
 
         return base;
-      }, [expenses, currentMonth, currentYear]);
+      }, [expenses, currentMonth, currentYear, filters.dateTo]);
 
       // Filtrado según tab activo + filtros del usuario
       const filteredExpenses = useMemo(() => {
