@@ -277,6 +277,20 @@
     const MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
     const getMesNombre = (idx) => MESES[idx];
 
+    const getFilterPeriodLabel = (filters) => {
+      if (!filters.dateFrom || !filters.dateTo) return null;
+      const yr = parseInt(filters.dateFrom.slice(0, 4));
+      const mo = parseInt(filters.dateFrom.slice(5, 7)) - 1;
+      const fromDay = parseInt(filters.dateFrom.slice(8, 10));
+      const toDay = parseInt(filters.dateTo.slice(8, 10));
+      const lastDay = new Date(yr, mo + 1, 0).getDate();
+      const monthName = MESES[mo];
+      if (fromDay === 1 && toDay === 15) return `1ᵃ Quincena · ${monthName} ${yr}`;
+      if (fromDay === 16 && toDay === lastDay) return `2ᵃ Quincena · ${monthName} ${yr}`;
+      if (fromDay === 1 && toDay === lastDay) return `${monthName} ${yr}`;
+      return `${filters.dateFrom} – ${filters.dateTo}`;
+    };
+
     const getQuincena = (dateStr) => new Date(dateStr).getDate() <= 15 ? 1 : 2;
 
     const parseLocalDate = (dateStr) => {
@@ -1366,7 +1380,9 @@
           <div className="max-w-lg mx-auto px-5 py-4 flex items-center justify-between">
             <div>
               <h1 className="text-xl font-bold text-ink dark:text-ink-dark tracking-tight">Balance</h1>
-              <p className="text-xs text-muted dark:text-muted-dark">${getMesNombre(currentMonth)} ${currentYear}</p>
+              <p className="text-xs text-muted dark:text-muted-dark">
+                ${(filters.dateFrom && filters.dateTo) ? getFilterPeriodLabel(filters) : `${getMesNombre(currentMonth)} ${currentYear}`}
+              </p>
             </div>
             <div className="flex items-center gap-1.5">
               <${HapticButton} onClick=${() => setShowFilters(true)} className=${`p-2.5 rounded-xl transition-colors ${hasActiveFilters ? 'bg-ink dark:bg-ink-dark' : 'hover:bg-surface-elevated dark:hover:bg-surface-elevated-dark'}`}>
@@ -1382,6 +1398,28 @@
         <!-- Content -->
         <div className="max-w-lg mx-auto px-5 pt-5 space-y-5">
           <${TabSelector} activeTab=${activeTab} onChangeTab=${setActiveTab} />
+
+          <!-- Pill de período filtrado -->
+          <${AnimatePresence}>
+            ${(filters.dateFrom && filters.dateTo) && html`
+              <${MDiv}
+                initial=${{ opacity: 0, y: -6, scale: 0.97 }}
+                animate=${{ opacity: 1, y: 0, scale: 1 }}
+                exit=${{ opacity: 0, y: -6, scale: 0.97 }}
+                transition=${{ type: 'spring', stiffness: 400, damping: 30 }}
+                className="flex items-center gap-2.5 bg-ink dark:bg-ink-dark rounded-2xl px-4 py-3 theme-transition">
+                <${Calendar} size=${14} strokeWidth=${1.5} className="text-white/50 dark:text-surface-dark/50 shrink-0" />
+                <span className="flex-1 text-sm font-semibold text-white dark:text-surface-dark">
+                  ${getFilterPeriodLabel(filters)}
+                </span>
+                <${HapticButton}
+                  onClick=${() => setFilters((f) => ({ ...f, dateFrom: '', dateTo: '' }))}
+                  className="p-1 -mr-1 rounded-lg hover:bg-white/15 dark:hover:bg-surface-dark/15 transition-colors">
+                  <${X} size=${14} strokeWidth=${2.5} className="text-white/60 dark:text-surface-dark/60" />
+                </${HapticButton}>
+              </${MDiv}>
+            `}
+          </${AnimatePresence}>
 
           <!-- Fortnight selector -->
           <${AnimatePresence} mode="wait">
