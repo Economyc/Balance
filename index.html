@@ -786,10 +786,24 @@
             `}
             <div>
               <label className="text-xs font-medium text-muted dark:text-muted-dark uppercase tracking-wider mb-1.5 block">Categoría</label>
-              <select value=${categoryId} onChange=${(e) => setCategoryId(e.target.value)} className=${inputCls + ' appearance-none'}>
-                <option value="">Todas</option>
-                ${categories.map((c) => html`<option key=${c.id} value=${c.id}>${c.name}</option>`)}
-              </select>
+              <div className="grid grid-cols-4 gap-2">
+                <${HapticButton} onClick=${() => setCategoryId('')}
+                  className=${`flex flex-col items-center gap-1.5 py-3 px-1 rounded-2xl transition-colors text-center theme-transition ${categoryId === ''
+                    ? 'bg-ink dark:bg-ink-dark text-white dark:text-surface-dark'
+                    : 'bg-surface dark:bg-surface-dark text-ink dark:text-ink-dark hover:bg-divider dark:hover:bg-divider-dark'}`}>
+                  <${Tag} size=${18} strokeWidth=${1.5} />
+                  <span className="text-[10px] font-medium leading-tight truncate w-full">Todas</span>
+                </${HapticButton}>
+                ${categories.map((cat) => html`
+                  <${HapticButton} key=${cat.id} onClick=${() => setCategoryId(cat.id)}
+                    className=${`flex flex-col items-center gap-1.5 py-3 px-1 rounded-2xl transition-colors text-center theme-transition ${categoryId === cat.id
+                      ? 'bg-ink dark:bg-ink-dark text-white dark:text-surface-dark'
+                      : 'bg-surface dark:bg-surface-dark text-ink dark:text-ink-dark hover:bg-divider dark:hover:bg-divider-dark'}`}>
+                    <${LucideIcon} name=${cat.icon} size=${18} strokeWidth=${1.5} />
+                    <span className="text-[10px] font-medium leading-tight truncate w-full">${cat.name}</span>
+                  </${HapticButton}>
+                `)}
+              </div>
             </div>
             <div className="flex items-center justify-between bg-surface dark:bg-surface-dark rounded-2xl px-4 py-3.5 theme-transition">
               <span className="text-sm font-medium text-ink dark:text-ink-dark">Solo Recurrentes</span>
