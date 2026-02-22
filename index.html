@@ -1324,13 +1324,20 @@
       // Filtrado según tab activo + filtros del usuario
       const filteredExpenses = useMemo(() => {
         let result = [...expensesWithRecurring];
-        if (activeTab === 'month') {
-          result = result.filter((e) => { const d = parseLocalDate(e.date); return d.getMonth() === currentMonth && d.getFullYear() === currentYear; });
-        } else if (activeTab === 'fortnight') {
-          result = result.filter((e) => { const d = parseLocalDate(e.date); return d.getMonth() === currentMonth && d.getFullYear() === currentYear && getQuincena(e.date) === selectedFortnight; });
-        } else if (activeTab === 'year') {
-          result = result.filter((e) => parseLocalDate(e.date).getFullYear() === currentYear);
+
+        // Si hay un filtro de fecha explícito, omitir el filtro del tab
+        // para que el rango del usuario tome precedencia sobre el mes visible
+        const hasDateFilter = filters.dateFrom || filters.dateTo;
+        if (!hasDateFilter) {
+          if (activeTab === 'month') {
+            result = result.filter((e) => { const d = parseLocalDate(e.date); return d.getMonth() === currentMonth && d.getFullYear() === currentYear; });
+          } else if (activeTab === 'fortnight') {
+            result = result.filter((e) => { const d = parseLocalDate(e.date); return d.getMonth() === currentMonth && d.getFullYear() === currentYear && getQuincena(e.date) === selectedFortnight; });
+          } else if (activeTab === 'year') {
+            result = result.filter((e) => parseLocalDate(e.date).getFullYear() === currentYear);
+          }
         }
+
         if (filters.dateFrom) result = result.filter((e) => e.date >= filters.dateFrom);
         if (filters.dateTo) result = result.filter((e) => e.date <= filters.dateTo);
         if (filters.categoryId) result = result.filter((e) => e.categoryId === filters.categoryId);
