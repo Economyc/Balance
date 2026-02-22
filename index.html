@@ -166,7 +166,7 @@
     import {
       Wallet, Plus, X, Pencil, Trash2, RefreshCw, Tag,
       SlidersHorizontal, LogOut, Inbox, Circle, Calendar,
-      TrendingDown, BarChart3, ChevronDown, Moon, Sun,
+      TrendingDown, BarChart3, ChevronDown, ChevronLeft, ChevronRight, Moon, Sun,
       UtensilsCrossed, Car, Home, Heart, Gamepad2, GraduationCap,
       CreditCard, MoreHorizontal, ShoppingBag, Wifi, Phone, Briefcase,
       Plane, Gift, Music, BookOpen, Dumbbell, Baby, Dog, Leaf,
@@ -220,7 +220,7 @@
     const ICON_MAP = {
       Wallet, Plus, X, Pencil, Trash2, RefreshCw, Tag,
       SlidersHorizontal, LogOut, Inbox, Circle, Calendar,
-      TrendingDown, BarChart3, ChevronDown, Moon, Sun,
+      TrendingDown, BarChart3, ChevronDown, ChevronLeft, ChevronRight, Moon, Sun,
       UtensilsCrossed, Car, Home, Heart, Gamepad2, GraduationCap,
       CreditCard, MoreHorizontal, ShoppingBag, Wifi, Phone, Briefcase,
       Plane, Gift, Music, BookOpen, Dumbbell, Baby, Dog, Leaf,
@@ -685,14 +685,63 @@
     // ═══════════════════════════════════════════════════════════════
 
     const FiltersModal = ({ filters, categories, onApply, onClose }) => {
-      const [dateFrom, setDateFrom] = useState(filters.dateFrom || '');
-      const [dateTo, setDateTo] = useState(filters.dateTo || '');
+      const today = new Date();
+
+      // Detectar estado inicial desde filtros existentes
+      const getInitState = () => {
+        if (!filters.dateFrom) return { pt: '', yr: today.getFullYear(), mo: today.getMonth(), fn: 1 };
+        const yr = parseInt(filters.dateFrom.slice(0, 4));
+        const mo = parseInt(filters.dateFrom.slice(5, 7)) - 1;
+        const fromDay = parseInt(filters.dateFrom.slice(8, 10));
+        const toDay = filters.dateTo ? parseInt(filters.dateTo.slice(8, 10)) : 0;
+        if (fromDay === 1 && toDay === 15) return { pt: 'fortnight', yr, mo, fn: 1 };
+        if (fromDay === 16) return { pt: 'fortnight', yr, mo, fn: 2 };
+        return { pt: 'month', yr, mo, fn: 1 };
+      };
+      const init = getInitState();
+
+      const [periodType, setPeriodType] = useState(init.pt);
+      const [selYear, setSelYear] = useState(init.yr);
+      const [selMonth, setSelMonth] = useState(init.mo);
+      const [selFortnight, setSelFortnight] = useState(init.fn);
       const [categoryId, setCategoryId] = useState(filters.categoryId || '');
       const [onlyRecurring, setOnlyRecurring] = useState(filters.onlyRecurring || false);
-      const handleApply = () => { onApply({ dateFrom, dateTo, categoryId, onlyRecurring }); onClose(); };
+
+      const prevMonth = () => {
+        if (selMonth === 0) { setSelMonth(11); setSelYear((y) => y - 1); }
+        else setSelMonth((m) => m - 1);
+      };
+      const nextMonth = () => {
+        if (selMonth === 11) { setSelMonth(0); setSelYear((y) => y + 1); }
+        else setSelMonth((m) => m + 1);
+      };
+
+      const handleApply = () => {
+        let dateFrom = '', dateTo = '';
+        const mm = String(selMonth + 1).padStart(2, '0');
+        const yyyy = String(selYear);
+        if (periodType === 'month') {
+          const lastDay = new Date(selYear, selMonth + 1, 0).getDate();
+          dateFrom = `${yyyy}-${mm}-01`;
+          dateTo = `${yyyy}-${mm}-${String(lastDay).padStart(2, '0')}`;
+        } else if (periodType === 'fortnight') {
+          if (selFortnight === 1) {
+            dateFrom = `${yyyy}-${mm}-01`;
+            dateTo = `${yyyy}-${mm}-15`;
+          } else {
+            const lastDay = new Date(selYear, selMonth + 1, 0).getDate();
+            dateFrom = `${yyyy}-${mm}-16`;
+            dateTo = `${yyyy}-${mm}-${String(lastDay).padStart(2, '0')}`;
+          }
+        }
+        onApply({ dateFrom, dateTo, categoryId, onlyRecurring });
+        onClose();
+      };
       const handleClear = () => { onApply({ dateFrom: '', dateTo: '', categoryId: '', onlyRecurring: false }); onClose(); };
 
       const inputCls = "w-full bg-surface dark:bg-surface-dark rounded-2xl px-4 py-3.5 text-ink dark:text-ink-dark font-medium outline-none focus:ring-2 focus:ring-ink/10 dark:focus:ring-ink-dark/10 theme-transition";
+      const segBtn = (active) => `flex-1 py-2.5 text-sm font-semibold rounded-xl transition-all ${active ? 'bg-ink dark:bg-ink-dark text-white dark:text-surface-dark shadow-sm' : 'text-muted dark:text-muted-dark'}`;
+      const fnBtn = (active) => `flex-1 py-2.5 text-sm font-semibold rounded-xl transition-all ${active ? 'bg-ink dark:bg-ink-dark text-white dark:text-surface-dark' : 'bg-surface-elevated dark:bg-surface-elevated-dark text-muted dark:text-muted-dark'}`;
 
       return html`<${ModalOverlay} onClose=${onClose}>
         <div className="p-6">
@@ -704,13 +753,37 @@
           </div>
           <div className="space-y-4">
             <div>
-              <label className="text-xs font-medium text-muted dark:text-muted-dark uppercase tracking-wider mb-1.5 block">Desde</label>
-              <input type="date" value=${dateFrom} onChange=${(e) => setDateFrom(e.target.value)} className=${inputCls} />
+              <label className="text-xs font-medium text-muted dark:text-muted-dark uppercase tracking-wider mb-1.5 block">Período</label>
+              <div className="flex gap-1 bg-surface dark:bg-surface-dark rounded-2xl p-1 theme-transition">
+                <${HapticButton} onClick=${() => setPeriodType('')} className=${segBtn(periodType === '')}>Todo</${HapticButton}>
+                <${HapticButton} onClick=${() => setPeriodType('month')} className=${segBtn(periodType === 'month')}>Mes</${HapticButton}>
+                <${HapticButton} onClick=${() => setPeriodType('fortnight')} className=${segBtn(periodType === 'fortnight')}>Quincena</${HapticButton}>
+              </div>
             </div>
-            <div>
-              <label className="text-xs font-medium text-muted dark:text-muted-dark uppercase tracking-wider mb-1.5 block">Hasta</label>
-              <input type="date" value=${dateTo} onChange=${(e) => setDateTo(e.target.value)} className=${inputCls} />
-            </div>
+            ${periodType !== '' && html`
+              <div>
+                <label className="text-xs font-medium text-muted dark:text-muted-dark uppercase tracking-wider mb-1.5 block">
+                  ${periodType === 'month' ? 'Mes' : 'Mes y Quincena'}
+                </label>
+                <div className="bg-surface dark:bg-surface-dark rounded-2xl px-4 py-3.5 theme-transition">
+                  <div className="flex items-center justify-between">
+                    <${HapticButton} onClick=${prevMonth} className="p-1.5 rounded-xl hover:bg-surface-elevated dark:hover:bg-surface-elevated-dark transition-colors">
+                      <${ChevronLeft} size=${20} strokeWidth=${2} className="text-ink dark:text-ink-dark" />
+                    </${HapticButton}>
+                    <span className="text-sm font-semibold text-ink dark:text-ink-dark">${MESES[selMonth]} ${selYear}</span>
+                    <${HapticButton} onClick=${nextMonth} className="p-1.5 rounded-xl hover:bg-surface-elevated dark:hover:bg-surface-elevated-dark transition-colors">
+                      <${ChevronRight} size=${20} strokeWidth=${2} className="text-ink dark:text-ink-dark" />
+                    </${HapticButton}>
+                  </div>
+                  ${periodType === 'fortnight' && html`
+                    <div className="flex gap-2 mt-3">
+                      <${HapticButton} onClick=${() => setSelFortnight(1)} className=${fnBtn(selFortnight === 1)}>1ra · 1–15</${HapticButton}>
+                      <${HapticButton} onClick=${() => setSelFortnight(2)} className=${fnBtn(selFortnight === 2)}>2da · 16–fin</${HapticButton}>
+                    </div>
+                  `}
+                </div>
+              </div>
+            `}
             <div>
               <label className="text-xs font-medium text-muted dark:text-muted-dark uppercase tracking-wider mb-1.5 block">Categoría</label>
               <select value=${categoryId} onChange=${(e) => setCategoryId(e.target.value)} className=${inputCls + ' appearance-none'}>
