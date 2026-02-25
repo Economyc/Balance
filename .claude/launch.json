@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "live-server",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["exec", "--", "live-server", "--port=5500"],
+      "port": 5500
+    },
+    {
+      "name": "tailwind-watch",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["exec", "--", "tailwindcss", "-i", "./input.css", "-o", "./style.css", "--watch"],
+      "port": 0
+    }
+  ]
+}

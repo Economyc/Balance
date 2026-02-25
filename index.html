@@ -803,16 +803,16 @@
               <div className="grid grid-cols-4 gap-2">
                 <${HapticButton} onClick=${() => setCategoryId('')}
                   className=${`flex flex-col items-center gap-1.5 py-3 px-1 rounded-2xl transition-colors text-center theme-transition ${categoryId === ''
-                    ? 'bg-ink dark:bg-ink-dark text-white dark:text-surface-dark'
-                    : 'bg-surface dark:bg-surface-dark text-ink dark:text-ink-dark hover:bg-divider dark:hover:bg-divider-dark'}`}>
+          ? 'bg-ink dark:bg-ink-dark text-white dark:text-surface-dark'
+          : 'bg-surface dark:bg-surface-dark text-ink dark:text-ink-dark hover:bg-divider dark:hover:bg-divider-dark'}`}>
                   <${Tag} size=${18} strokeWidth=${1.5} />
                   <span className="text-[10px] font-medium leading-tight truncate w-full">Todas</span>
                 </${HapticButton}>
                 ${categories.map((cat) => html`
                   <${HapticButton} key=${cat.id} onClick=${() => setCategoryId(cat.id)}
                     className=${`flex flex-col items-center gap-1.5 py-3 px-1 rounded-2xl transition-colors text-center theme-transition ${categoryId === cat.id
-                      ? 'bg-ink dark:bg-ink-dark text-white dark:text-surface-dark'
-                      : 'bg-surface dark:bg-surface-dark text-ink dark:text-ink-dark hover:bg-divider dark:hover:bg-divider-dark'}`}>
+              ? 'bg-ink dark:bg-ink-dark text-white dark:text-surface-dark'
+              : 'bg-surface dark:bg-surface-dark text-ink dark:text-ink-dark hover:bg-divider dark:hover:bg-divider-dark'}`}>
                     <${LucideIcon} name=${cat.icon} size=${18} strokeWidth=${1.5} />
                     <span className="text-[10px] font-medium leading-tight truncate w-full">${cat.name}</span>
                   </${HapticButton}>
@@ -1033,6 +1033,167 @@
           `)}
         </div>
       </div>`;
+    };
+
+    // ═══════════════════════════════════════════════════════════════
+    // Vista Quincenal — Muestra ambas quincenas del mes
+    // ═══════════════════════════════════════════════════════════════
+
+    const FortnightView = ({ expenses, categories, onEdit, onDelete }) => {
+      const [expandedFn, setExpandedFn] = useState(null);
+
+      const { q1Expenses, q2Expenses, q1Total, q2Total, totalMonth, lastDay } = useMemo(() => {
+        const q1 = expenses.filter((e) => {
+          const day = parseLocalDate(e.date).getDate();
+          return day >= 1 && day <= 15;
+        });
+        const q2 = expenses.filter((e) => {
+          const day = parseLocalDate(e.date).getDate();
+          return day >= 16;
+        });
+        const q1T = q1.reduce((s, e) => s + e.amount, 0);
+        const q2T = q2.reduce((s, e) => s + e.amount, 0);
+        // Get last day of the month from the first expense, or current month
+        let ld = 31;
+        if (expenses.length > 0) {
+          const d = parseLocalDate(expenses[0].date);
+          ld = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+        } else {
+          ld = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
+        }
+        return { q1Expenses: q1, q2Expenses: q2, q1Total: q1T, q2Total: q2T, totalMonth: q1T + q2T, lastDay: ld };
+      }, [expenses]);
+
+      const q1Recurring = q1Expenses.filter((e) => e.recurring).reduce((s, e) => s + e.amount, 0);
+      const q2Recurring = q2Expenses.filter((e) => e.recurring).reduce((s, e) => s + e.amount, 0);
+
+      const maxQ = Math.max(q1Total, q2Total, 1);
+
+      const toggleExpand = (fn) => setExpandedFn(expandedFn === fn ? null : fn);
+
+      const FortnightCard = ({ number, label, dateRange, total, recurring, count, exps }) => {
+        const isExpanded = expandedFn === number;
+        const pct = (total / maxQ) * 100;
+
+        return html`<${MDiv} layout className="bg-surface-elevated dark:bg-surface-elevated-dark rounded-3xl shadow-sm overflow-hidden theme-transition">
+          <${HapticButton} onClick=${() => toggleExpand(number)}
+            className="w-full p-5 text-left">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 bg-surface dark:bg-surface-dark rounded-xl flex items-center justify-center theme-transition">
+                  <${Calendar} size=${16} strokeWidth=${1.5} className="text-ink dark:text-ink-dark" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-ink dark:text-ink-dark">${label}</p>
+                  <p className="text-[11px] text-muted dark:text-muted-dark">${dateRange}</p>
+                </div>
+              </div>
+              <${MDiv}
+                animate=${{ rotate: isExpanded ? 180 : 0 }}
+                transition=${{ duration: 0.25 }}
+                className="shrink-0">
+                <${ChevronDown} size=${18} strokeWidth=${1.5} className="text-muted dark:text-muted-dark" />
+              </${MDiv}>
+            </div>
+
+            <p className="text-2xl font-bold text-ink dark:text-ink-dark tracking-tight mb-1">${formatCOP(total)}</p>
+
+            <div className="flex items-center gap-3 text-xs text-muted dark:text-muted-dark mb-3">
+              <span>${count} gasto${count !== 1 ? 's' : ''}</span>
+              ${recurring > 0 && html`
+                <span className="flex items-center gap-1">
+                  <${RefreshCw} size=${10} strokeWidth=${1.5} />
+                  ${formatCOP(recurring)} fijos
+                </span>
+              `}
+            </div>
+
+            <div className="h-2 bg-surface dark:bg-surface-dark rounded-full overflow-hidden theme-transition">
+              <${MDiv} initial=${{ width: 0 }} animate=${{ width: pct + '%' }}
+                transition=${{ duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
+                className="h-full bg-ink dark:bg-ink-dark rounded-full theme-transition" />
+            </div>
+          </${HapticButton}>
+
+          <${AnimatePresence}>
+            ${isExpanded && html`
+              <${MDiv}
+                initial=${{ height: 0, opacity: 0 }}
+                animate=${{ height: 'auto', opacity: 1 }}
+                exit=${{ height: 0, opacity: 0 }}
+                transition=${{ type: 'spring', stiffness: 300, damping: 30 }}
+                className="overflow-hidden">
+                <div className="px-5 pb-4 pt-0">
+                  <div className="border-t border-divider/40 dark:border-divider-dark/40 pt-2">
+                    ${exps.length > 0 ? html`
+                      <${GroupedExpenseList}
+                        expenses=${exps}
+                        categories=${categories}
+                        onEdit=${onEdit}
+                        onDelete=${onDelete} />
+                    ` : html`
+                      <div className="text-center py-6">
+                        <${Inbox} size=${28} strokeWidth=${1} className="text-muted/30 dark:text-muted-dark/30 mx-auto mb-2" />
+                        <p className="text-sm text-muted dark:text-muted-dark">Sin gastos en esta quincena</p>
+                      </div>
+                    `}
+                  </div>
+                </div>
+              </${MDiv}>
+            `}
+          </${AnimatePresence}>
+        </${MDiv}>`;
+      };
+
+      return html`<${MDiv}
+        initial=${{ opacity: 0, x: 30 }} animate=${{ opacity: 1, x: 0 }} exit=${{ opacity: 0, x: -30 }}
+        transition=${{ type: 'spring', stiffness: 300, damping: 30 }}
+        className="space-y-5">
+
+        <!-- Resumen total del mes -->
+        <div className="grid grid-cols-2 gap-3">
+          <${SummaryCard}
+            label="Total Mes"
+            amount=${totalMonth}
+            icon="TrendingDown"
+            subtitle=${`${expenses.length} gasto${expenses.length !== 1 ? 's' : ''}`} />
+          <${SummaryCard}
+            label="Recurrentes"
+            amount=${q1Recurring + q2Recurring}
+            icon="RefreshCw"
+            subtitle="Gastos fijos" />
+        </div>
+
+        <!-- Tarjetas de cada quincena -->
+        <${FortnightCard}
+          number=${1}
+          label="1ᵃ Quincena"
+          dateRange="Día 1 – 15"
+          total=${q1Total}
+          recurring=${q1Recurring}
+          count=${q1Expenses.length}
+          exps=${q1Expenses} />
+
+        <${FortnightCard}
+          number=${2}
+          label="2ᵃ Quincena"
+          dateRange=${`Día 16 – ${lastDay}`}
+          total=${q2Total}
+          recurring=${q2Recurring}
+          count=${q2Expenses.length}
+          exps=${q2Expenses} />
+
+        <!-- Distribución general -->
+        <div className="bg-surface-elevated dark:bg-surface-elevated-dark rounded-3xl p-5 shadow-sm theme-transition">
+          <${CategoryBars} expenses=${expenses} categories=${categories} />
+          ${expenses.length === 0 && html`
+            <div className="text-center py-6">
+              <${Inbox} size=${32} strokeWidth=${1} className="text-muted/40 dark:text-muted-dark/40 mx-auto mb-2" />
+              <p className="text-sm text-muted dark:text-muted-dark">Sin gastos registrados</p>
+            </div>
+          `}
+        </div>
+      </${MDiv}>`;
     };
 
     // ═══════════════════════════════════════════════════════════════
@@ -1346,7 +1507,7 @@
           if (activeTab === 'month') {
             result = result.filter((e) => { const d = parseLocalDate(e.date); return d.getMonth() === currentMonth && d.getFullYear() === currentYear; });
           } else if (activeTab === 'fortnight') {
-            result = result.filter((e) => { const d = parseLocalDate(e.date); return d.getMonth() === currentMonth && d.getFullYear() === currentYear && getQuincena(e.date) === selectedFortnight; });
+            result = result.filter((e) => { const d = parseLocalDate(e.date); return d.getMonth() === currentMonth && d.getFullYear() === currentYear; });
           } else if (activeTab === 'year') {
             result = result.filter((e) => parseLocalDate(e.date).getFullYear() === currentYear);
           }
@@ -1421,31 +1582,19 @@
             `}
           </${AnimatePresence}>
 
-          <!-- Fortnight selector -->
-          <${AnimatePresence} mode="wait">
-            ${activeTab === 'fortnight' && html`
-              <${MDiv} key="fort-sel" initial=${{ opacity: 0, height: 0 }} animate=${{ opacity: 1, height: 'auto' }} exit=${{ opacity: 0, height: 0 }} className="overflow-hidden">
-                <div className="flex gap-2">
-                  ${[1, 2].map((q) => html`
-                    <${HapticButton} key=${q} onClick=${() => setSelectedFortnight(q)}
-                      className=${`flex-1 py-2.5 rounded-xl text-sm font-medium transition-colors theme-transition ${selectedFortnight === q
-          ? 'bg-ink dark:bg-ink-dark text-white dark:text-surface-dark'
-          : 'bg-surface-elevated dark:bg-surface-elevated-dark text-muted dark:text-muted-dark'
-        }`}>
-                      ${q === 1 ? '1ᵃ Quincena (1-15)' : '2ᵃ Quincena (16-31)'}
-                    </${HapticButton}>
-                  `)}
-                </div>
-              </${MDiv}>
-            `}
-          </${AnimatePresence}>
 
           <!-- Main content por tab -->
           <${AnimatePresence} mode="wait">
             ${activeTab === 'year' ? html`
               <${YearView} key="year" expenses=${expensesWithRecurring} categories=${categories} year=${currentYear} />
+            ` : activeTab === 'fortnight' ? html`
+              <${FortnightView} key="fortnight"
+                expenses=${filteredExpenses}
+                categories=${categories}
+                onEdit=${handleEditExpense}
+                onDelete=${handleDeleteExpenseWrapped} />
             ` : html`
-              <${MDiv} key=${activeTab + '-' + selectedFortnight}
+              <${MDiv} key=${activeTab}
                 initial=${{ opacity: 0, x: 30 }} animate=${{ opacity: 1, x: 0 }} exit=${{ opacity: 0, x: -30 }}
                 transition=${{ type: 'spring', stiffness: 300, damping: 30 }}
                 className="space-y-5">
@@ -1453,7 +1602,7 @@
                 <!-- Summary -->
                 <div className="grid grid-cols-2 gap-3">
                   <${SummaryCard}
-                    label=${activeTab === 'month' ? 'Total Mes' : `Quincena ${selectedFortnight}`}
+                    label="Total Mes"
                     amount=${totalFiltered}
                     icon="TrendingDown"
                     subtitle=${`${filteredExpenses.length} gasto${filteredExpenses.length !== 1 ? 's' : ''}`} />
