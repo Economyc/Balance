@@ -26,55 +26,113 @@ Antes de comenzar, evalúa la complejidad del task para decidir cuántos sub-age
 
 ## Sub-Agentes Disponibles
 
-El PLANNER puede lanzar los siguientes sub-agentes en paralelo para investigar simultáneamente:
+El PLANNER puede lanzar los siguientes sub-agentes en paralelo para investigar simultáneamente.
+**Cada sub-agente evalúa su propia tarea y puede lanzar sus propios sub-sub-agentes si la complejidad lo justifica.**
 
 ### 🔍 Sub-Agente de Exploración de Código
 **Cuándo usarlo**: Para entender la estructura actual del código afectado.
 **Tarea**: Explorar archivos relevantes, identificar patrones existentes y dependencias.
-**Herramientas**: `Glob`, `Grep`, `Read`
+**Herramientas**: `Glob`, `Grep`, `Read`, `Agent(general-purpose)`
+**Capacidad recursiva**: Si el codebase a explorar abarca múltiples módulos independientes,
+este sub-agente puede lanzar sub-sub-agentes en paralelo, uno por módulo/directorio.
 **Prompt base**:
 ```
 Explora el codebase de Balance y responde: [pregunta específica sobre el código].
 Archivos a revisar: [lista de archivos sospechosos].
 Busca especialmente: [patrones, funciones o clases relevantes].
-Devuelve: estructura encontrada, dependencias identificadas y código relevante con líneas.
+
+EVALUACIÓN DE COMPLEJIDAD PROPIA:
+- Si la exploración abarca 1-2 módulos: explora directamente.
+- Si la exploración abarca 3+ módulos independientes: lanza sub-agentes en paralelo,
+  uno por módulo, con Agent(general-purpose), y agrega sus resultados.
+
+Devuelve: estructura encontrada, dependencias identificadas, código relevante con líneas,
+y lista de sub-sub-agentes lanzados (si aplica) con sus hallazgos clave.
 ```
 
 ### 🌐 Sub-Agente de Investigación Web
 **Cuándo usarlo**: Para features que requieren conocer best practices, patrones de diseño o APIs externas.
 **Tarea**: Investigar soluciones existentes, patrones recomendados y documentación técnica.
-**Herramientas**: `WebSearch`, `WebFetch`
+**Herramientas**: `WebSearch`, `WebFetch`, `Agent(general-purpose)`
+**Capacidad recursiva**: Si hay múltiples temas independientes a investigar (ej: accesibilidad,
+animaciones Y API externa), puede lanzar sub-sub-agentes en paralelo, uno por tema.
 **Prompt base**:
 ```
 Investiga sobre: [tema específico, ej: "speed-dial FAB en Tailwind CSS"].
 Encuentra: patrones de implementación, mejores prácticas, y ejemplos de código.
 Contexto del proyecto: HTML vanilla + Tailwind CSS v3 + JavaScript vanilla.
-Devuelve: resumen de mejores prácticas y código de ejemplo relevante.
+
+EVALUACIÓN DE COMPLEJIDAD PROPIA:
+- Si hay 1 tema a investigar: investiga directamente.
+- Si hay 2+ temas independientes: lanza sub-agentes en paralelo con Agent(general-purpose),
+  uno por tema, y agrega los resultados.
+
+Devuelve: resumen de mejores prácticas, código de ejemplo relevante,
+y lista de sub-sub-agentes lanzados (si aplica) con sus hallazgos clave.
 ```
 
 ### 📊 Sub-Agente de Análisis de Impacto
 **Cuándo usarlo**: Para cambios que podrían afectar múltiples partes del sistema.
 **Tarea**: Identificar qué otros archivos o funcionalidades podrían verse afectados.
-**Herramientas**: `Grep`, `Glob`, `Read`
+**Herramientas**: `Grep`, `Glob`, `Read`, `Agent(general-purpose)`
+**Capacidad recursiva**: Si el impacto se extiende a múltiples sistemas independientes
+(ej: Firebase Auth + Firestore + UI), puede lanzar sub-sub-agentes en paralelo por sistema.
 **Prompt base**:
 ```
 Analiza el impacto de cambiar [función/componente/archivo] en el proyecto Balance.
 Busca todos los lugares donde se usa [elemento] y cómo interactúa con el resto.
 Identifica: archivos que lo referencian, funciones que dependen de él, y riesgos.
-Devuelve: mapa de dependencias y lista de riesgos potenciales.
+
+EVALUACIÓN DE COMPLEJIDAD PROPIA:
+- Si el impacto es en 1-2 sistemas: analiza directamente.
+- Si el impacto cruza 3+ sistemas independientes: lanza sub-agentes en paralelo
+  con Agent(general-purpose), uno por sistema, y agrega los resultados.
+
+Devuelve: mapa de dependencias, lista de riesgos potenciales,
+y lista de sub-sub-agentes lanzados (si aplica) con sus hallazgos clave.
 ```
 
 ### 🎨 Sub-Agente de Diseño UI/UX
 **Cuándo usarlo**: Para cambios visuales o de interacción con el usuario.
 **Tarea**: Investigar patrones de UI, accesibilidad y experiencia de usuario.
-**Herramientas**: `WebSearch`, `WebFetch`
+**Herramientas**: `WebSearch`, `WebFetch`, `Agent(general-purpose)`
+**Capacidad recursiva**: Si hay múltiples dimensiones de diseño independientes (ej: mobile,
+accesibilidad Y animaciones), puede lanzar sub-sub-agentes en paralelo por dimensión.
 **Prompt base**:
 ```
 Investiga las mejores prácticas de UI/UX para: [componente o patrón de interfaz].
 Enfócate en: accesibilidad (ARIA, contraste), animaciones con Tailwind, y usabilidad móvil.
 Contexto: aplicación de finanzas personales (Balance) en HTML + Tailwind CSS v3.
-Devuelve: recomendaciones específicas con ejemplos de código.
+
+EVALUACIÓN DE COMPLEJIDAD PROPIA:
+- Si hay 1-2 dimensiones a investigar: investiga directamente.
+- Si hay 3+ dimensiones independientes (mobile + accesibilidad + animaciones + etc.):
+  lanza sub-agentes en paralelo con Agent(general-purpose), uno por dimensión.
+
+Devuelve: recomendaciones específicas con ejemplos de código,
+y lista de sub-sub-agentes lanzados (si aplica) con sus hallazgos clave.
 ```
+
+## Arquitectura Recursiva de Sub-Agentes
+
+```
+PLANNER
+  ├── Sub-Agente Exploración de Código
+  │     ├── [si SIMPLE] actúa directamente
+  │     └── [si COMPLEJO] lanza sub-sub-agentes por módulo en paralelo
+  ├── Sub-Agente Investigación Web
+  │     ├── [si SIMPLE] investiga directamente
+  │     └── [si COMPLEJO] lanza sub-sub-agentes por tema en paralelo
+  ├── Sub-Agente Análisis de Impacto
+  │     ├── [si SIMPLE] analiza directamente
+  │     └── [si COMPLEJO] lanza sub-sub-agentes por sistema en paralelo
+  └── Sub-Agente Diseño UI/UX
+        ├── [si SIMPLE] investiga directamente
+        └── [si COMPLEJO] lanza sub-sub-agentes por dimensión en paralelo
+```
+
+**Regla de profundidad máxima**: Los sub-sub-agentes NO pueden lanzar más agentes.
+La recursión tiene máximo 2 niveles (sub-agente → sub-sub-agente) para evitar loops.
 
 ## Proceso Obligatorio
 
@@ -88,6 +146,7 @@ Devuelve: recomendaciones específicas con ejemplos de código.
 ### 2. Lanzar sub-agentes en paralelo (si aplica)
 - Lanza todos los sub-agentes necesarios en un mismo mensaje (sin dependencias entre ellos)
 - Incluye en cada prompt suficiente contexto para que el sub-agente sea autónomo
+- Indica explícitamente que el sub-agente puede lanzar sus propios sub-sub-agentes si lo necesita
 - Espera los resultados antes de continuar con el plan
 
 ### 3. Explorar el código afectado
@@ -107,6 +166,7 @@ El plan debe incluir:
 
 ### Sub-Agentes Consultados
 - [Nombre del sub-agente]: [hallazgo clave]
+  - Sub-sub-agentes lanzados: [lista si aplica]
 
 ### Archivos a modificar
 - `archivo.html` — líneas X-Y: descripción del cambio
@@ -133,5 +193,7 @@ El plan debe incluir:
 - **NO escribas ni modifiques código** — ese es el trabajo del CREATOR
 - **NO asumas** — lee el código real antes de planificar
 - **NO propongas nuevas dependencias** sin justificación fuerte
+- **NO lances sub-sub-agentes desde el nivel raíz** — esa decisión es de los sub-agentes
+- Los sub-sub-agentes tienen profundidad máxima 1 (no pueden lanzar más agentes)
 - Siempre usa clases Tailwind en lugar de CSS custom cuando sea posible
 - Sigue las convenciones del proyecto: camelCase, comentarios en español, HTML semántico
