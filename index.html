@@ -187,7 +187,7 @@
     // React 18 + Tailwind (Dark/Light) + Framer Motion + Lucide + htm
     // ═══════════════════════════════════════════════════════════════
 
-    import React, { useState, useEffect, useRef, useMemo, useCallback, createContext, useContext } from "react";
+    import React, { useState, useEffect, useRef, useMemo, useCallback, createContext, useContext, useTransition } from "react";
     import { createRoot } from "react-dom/client";
     import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
     import {
@@ -1011,6 +1011,9 @@
       { id: 'year', label: 'Año', icon: 'TrendingDown' },
     ];
 
+    const TAB_ORDER = ['month', 'fortnight', 'year'];
+    const TAB_LABELS_FULL = { month: 'Mensual', fortnight: 'Quincenal', year: 'Anual' };
+
     const TabSelector = ({ activeTab, onChangeTab }) => {
       return html`<div className="flex bg-surface-elevated dark:bg-surface-elevated-dark rounded-2xl p-1 shadow-sm theme-transition">
         ${TAB_VIEWS.map((tab) => html`
@@ -1490,8 +1493,26 @@
         }
       }, [activeTab, viewMonth]);
 
-      // Ref para detectar swipe en el selector de período
+      // Transición suave: diferir cambios de tab para no bloquear animaciones
+      const [, startTabTransition] = useTransition();
+      const handleChangeTab = useCallback((tab) => {
+        startTabTransition(() => setActiveTab(tab));
+      }, []);
+
+      // Ref para detectar swipe en el selector de período (mes/año)
       const swipeTouchX = useRef(0);
+      // Ref para detectar swipe en el selector de tipo de período
+      const swipePeriodX = useRef(0);
+
+      // Cambiar tipo de período con swipe
+      const prevTab = useCallback(() => {
+        const idx = TAB_ORDER.indexOf(activeTab);
+        if (idx > 0) startTabTransition(() => setActiveTab(TAB_ORDER[idx - 1]));
+      }, [activeTab]);
+      const nextTab = useCallback(() => {
+        const idx = TAB_ORDER.indexOf(activeTab);
+        if (idx < TAB_ORDER.length - 1) startTabTransition(() => setActiveTab(TAB_ORDER[idx + 1]));
+      }, [activeTab]);
 
       // Auth Listener
       useEffect(() => {
@@ -1759,8 +1780,9 @@
                   onLogout=${handleLogout} />
               </div>
             </div>
-            <!-- Fila 2: Navegación de período (swipe izq/der para cambiar mes) -->
-            <div className="flex items-center overflow-hidden">
+            <!-- Fila 2: Navegación de período (swipe izq/der para cambiar mes/tipo) -->
+            <div className="flex items-center justify-between overflow-hidden">
+              <!-- Izquierda: mes/año o etiqueta de filtro — swipe cambia mes/año -->
               <${AnimatePresence} mode="wait">
                 ${hasDateFilter
                   ? html`<${MDiv} key="filter-label"
@@ -1786,6 +1808,26 @@
                         </span>
                       </${MDiv}>`
                 }
+              </${AnimatePresence}>
+              <!-- Derecha: tipo de período — swipe cambia entre Mensual/Quincenal/Anual -->
+              <${AnimatePresence} mode="wait">
+                <${MDiv}
+                  key=${activeTab + '-period-type'}
+                  initial=${{ opacity: 0, y: 4 }} animate=${{ opacity: 1, y: 0 }} exit=${{ opacity: 0, y: -4 }}
+                  transition=${{ duration: 0.16, ease: 'easeOut' }}>
+                  <span
+                    className="text-sm font-medium text-muted dark:text-muted-dark"
+                    style=${{ userSelect: 'none', padding: '4px 0', cursor: 'default' }}
+                    onTouchStart=${(e) => { swipePeriodX.current = e.touches[0].clientX; }}
+                    onTouchEnd=${(e) => {
+                      const dx = e.changedTouches[0].clientX - swipePeriodX.current;
+                      if (dx < -40) nextTab();
+                      else if (dx > 40) prevTab();
+                    }}
+                  >
+                    ${TAB_LABELS_FULL[activeTab]}
+                  </span>
+                </${MDiv}>
               </${AnimatePresence}>
             </div>
           </div>
@@ -1818,7 +1860,7 @@
 
 
           <!-- Main content por tab -->
-          <${AnimatePresence} mode="wait">
+          <${AnimatePresence} mode="popLayout">
             ${activeTab === 'year' ? html`
               <${MDiv} key="year"
                 initial=${{ opacity: 0, y: 10 }} animate=${{ opacity: 1, y: 0 }} exit=${{ opacity: 0, y: -10 }}
@@ -1885,7 +1927,7 @@
         <!-- FAB principal (speed-dial): agrupa "Nuevo Gasto" y selector de período -->
         <${MainFAB}
           activeTab=${activeTab}
-          onChangeTab=${setActiveTab}
+          onChangeTab=${handleChangeTab}
           onAddExpense=${() => { setEditingExpense(null); setShowExpenseModal(true); }} />
 
         <!-- Modales -->
