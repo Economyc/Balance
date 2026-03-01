@@ -197,7 +197,7 @@
       UtensilsCrossed, Car, Home, Heart, Gamepad2, GraduationCap,
       CreditCard, MoreHorizontal, ShoppingBag, Wifi, Phone, Briefcase,
       Plane, Gift, Music, BookOpen, Dumbbell, Baby, Dog, Leaf,
-      LogIn, Loader2
+      LogIn, Loader2, CheckCircle2
     } from "lucide-react";
     import htm from "htm";
 
@@ -881,17 +881,27 @@
     // ═══════════════════════════════════════════════════════════════
 
     // Fila individual de gasto dentro del acordeón
-    const ExpenseRow = ({ expense, onEdit, onDelete }) => {
+    const ExpenseRow = ({ expense, onEdit, onDelete, onToggleStatus }) => {
       const dateObj = parseLocalDate(expense.date);
       const dateLabel = `${dateObj.getDate()} ${getMesNombre(dateObj.getMonth()).slice(0, 3)}`;
+      const isPaid = expense.paid ?? false;
 
       return html`<${MDiv} layout
         initial=${{ opacity: 0, y: 8 }} animate=${{ opacity: 1, y: 0 }} exit=${{ opacity: 0, y: -8 }}
         transition=${{ type: 'spring', stiffness: 400, damping: 30 }}
-        className="flex items-center gap-3 py-3 px-1 border-b border-divider/30 dark:border-divider-dark/30 last:border-0">
+        className=${`flex items-center gap-3 py-3 px-1 border-b border-divider/30 dark:border-divider-dark/30 last:border-0 ${isPaid ? 'opacity-60' : ''}`}>
+        <!-- Botón de estado: ○ Pendiente / ✓ Pagado -->
+        <${HapticButton} onClick=${() => onToggleStatus(expense)}
+          className="p-1 rounded-lg shrink-0 transition-colors hover:bg-surface dark:hover:bg-surface-dark"
+          title=${isPaid ? 'Marcar como pendiente' : 'Marcar como pagado'}>
+          ${isPaid
+            ? html`<${CheckCircle2} size=${16} strokeWidth=${1.5} className="text-emerald-500" />`
+            : html`<${Circle} size=${16} strokeWidth=${1.5} className="text-muted/40 dark:text-muted-dark/40" />`
+          }
+        </${HapticButton}>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <p className="text-sm font-medium text-ink dark:text-ink-dark truncate">${expense.name}</p>
+            <p className=${`text-sm font-medium text-ink dark:text-ink-dark truncate ${isPaid ? 'line-through' : ''}`}>${expense.name}</p>
             ${expense.recurring && html`<${RefreshCw} size=${11} strokeWidth=${1.5} className="text-muted dark:text-muted-dark shrink-0" />`}
           </div>
           <p className="text-xs text-muted dark:text-muted-dark mt-0.5">${dateLabel}</p>
@@ -909,7 +919,7 @@
     };
 
     // Grupo de categoría con acordeón desplegable
-    const CategoryAccordion = ({ category, expenses, onEdit, onDelete }) => {
+    const CategoryAccordion = ({ category, expenses, onEdit, onDelete, onToggleStatus }) => {
       const [open, setOpen] = useState(false);
       const total = useMemo(() => expenses.reduce((s, e) => s + e.amount, 0), [expenses]);
       const count = expenses.length;
@@ -947,7 +957,7 @@
                 <div className="border-t border-divider/40 dark:border-divider-dark/40 pt-2">
                   <${AnimatePresence} mode="popLayout">
                     ${expenses.map((e) => html`
-                      <${ExpenseRow} key=${e.id} expense=${e} onEdit=${onEdit} onDelete=${onDelete} />
+                      <${ExpenseRow} key=${e.id} expense=${e} onEdit=${onEdit} onDelete=${onDelete} onToggleStatus=${onToggleStatus} />
                     `)}
                   </${AnimatePresence}>
                 </div>
@@ -959,7 +969,7 @@
     };
 
     // Lista agrupada por categorías
-    const GroupedExpenseList = ({ expenses, categories, onEdit, onDelete }) => {
+    const GroupedExpenseList = ({ expenses, categories, onEdit, onDelete, onToggleStatus }) => {
       // Agrupar gastos por categoría (solo las que tienen gastos)
       const grouped = useMemo(() => {
         const map = {};
@@ -994,7 +1004,7 @@
             ${grouped.map(({ category, expenses: exps }) => html`
               <${CategoryAccordion} key=${category.id}
                 category=${category} expenses=${exps}
-                onEdit=${onEdit} onDelete=${onDelete} />
+                onEdit=${onEdit} onDelete=${onDelete} onToggleStatus=${onToggleStatus} />
             `)}
           </${AnimatePresence}>
         </div>
@@ -1190,7 +1200,7 @@
     // Tarjeta de Quincena (componente independiente)
     // ═══════════════════════════════════════════════════════════════
 
-    const FortnightCard = ({ number, label, dateRange, total, recurring, recurringCount, oneTimeCount, count, maxTotal, isExpanded, onToggle, fortnightExpenses, categories, onEdit, onDelete }) => {
+    const FortnightCard = ({ number, label, dateRange, total, recurring, recurringCount, oneTimeCount, count, maxTotal, isExpanded, onToggle, fortnightExpenses, categories, onEdit, onDelete, onToggleStatus }) => {
 
       return html`<${MDiv} layout className="bg-surface-elevated dark:bg-surface-elevated-dark rounded-3xl shadow-sm overflow-hidden theme-transition">
         <${HapticButton} onClick=${onToggle}
@@ -1247,7 +1257,8 @@
                       expenses=${fortnightExpenses}
                       categories=${categories}
                       onEdit=${onEdit}
-                      onDelete=${onDelete} />
+                      onDelete=${onDelete}
+                      onToggleStatus=${onToggleStatus} />
                   ` : html`
                     <div className="text-center py-6">
                       <${Inbox} size=${28} strokeWidth=${1} className="text-muted/30 dark:text-muted-dark/30 mx-auto mb-2" />
@@ -1266,7 +1277,7 @@
     // Vista Quincenal — Muestra ambas quincenas del mes
     // ═══════════════════════════════════════════════════════════════
 
-    const FortnightView = ({ expenses, categories, onEdit, onDelete }) => {
+    const FortnightView = ({ expenses, categories, onEdit, onDelete, onToggleStatus }) => {
       const [expandedFn, setExpandedFn] = useState(null);
 
       // Separar gastos estrictamente por día del mes
@@ -1343,7 +1354,8 @@
           fortnightExpenses=${q1Expenses}
           categories=${categories}
           onEdit=${onEdit}
-          onDelete=${onDelete} />
+          onDelete=${onDelete}
+          onToggleStatus=${onToggleStatus} />
 
         <!-- 2ᵃ Quincena -->
         <${FortnightCard}
@@ -1362,7 +1374,8 @@
           fortnightExpenses=${q2Expenses}
           categories=${categories}
           onEdit=${onEdit}
-          onDelete=${onDelete} />
+          onDelete=${onDelete}
+          onToggleStatus=${onToggleStatus} />
 
         <!-- Distribución general -->
         <div className="bg-surface-elevated dark:bg-surface-elevated-dark rounded-3xl p-5 shadow-sm theme-transition">
@@ -1642,6 +1655,30 @@
         setShowExpenseModal(true);
       }, [expenses]);
 
+      // Alternar estado Pendiente/Pagado de un gasto
+      const handleToggleExpenseStatus = useCallback(async (expense) => {
+        if (!user) return;
+        try {
+          if (expense.recurring) {
+            // Para recurrentes: el estado es por período (mes), se guarda en paidPeriods del original
+            const originalId = expense._isVirtual ? expense._originalId : expense.id;
+            const original = expenses.find((e) => e.id === originalId);
+            if (!original) return;
+            const period = expense.date.slice(0, 7); // "YYYY-MM"
+            const currentPaid = original.paidPeriods?.[period] ?? false;
+            const newPaidPeriods = { ...(original.paidPeriods || {}), [period]: !currentPaid };
+            const ref = doc(db, `users/${user.uid}/expenses`, originalId);
+            await setDoc(ref, { ...original, paidPeriods: newPaidPeriods });
+          } else {
+            // Para no-recurrentes: el estado se guarda directamente en el campo paid
+            const ref = doc(db, `users/${user.uid}/expenses`, expense.id);
+            await setDoc(ref, { ...expense, paid: !(expense.paid ?? false) });
+          }
+        } catch (err) {
+          console.error("Error al cambiar estado del gasto:", err);
+        }
+      }, [user, expenses]);
+
       const handleDeleteExpenseWrapped = useCallback(async (id) => {
         // Si es un ID virtual, extraer el ID original
         const recMatch = id.match(/^(.+)_rec_\d+_\d+$/);
@@ -1665,7 +1702,14 @@
       // fecha de creación hasta el mes actualmente visto, usando el
       // mismo día (o el último del mes si no existe).
       const expensesWithRecurring = useMemo(() => {
-        const base = [...expenses];
+        // Para gastos recurrentes originales: derivar paid desde paidPeriods del mes correspondiente
+        const base = expenses.map((e) => {
+          if (e.recurring) {
+            const period = e.date.slice(0, 7);
+            return { ...e, paid: e.paidPeriods?.[period] ?? false };
+          }
+          return e;
+        });
         const recurring = expenses.filter((e) => e.recurring);
 
         // Determinar el mes/año objetivo según la vista activa
@@ -1707,10 +1751,12 @@
             // Solo agregar si no existe ya un gasto con el mismo ID base en este mes
             const virtualId = `${e.id}_rec_${y}_${m}`;
             if (!base.some((b) => b.id === virtualId)) {
+              const period = `${y}-${String(m + 1).padStart(2, '0')}`;
               base.push({
                 ...e,
                 id: virtualId,
                 date: newDate,
+                paid: e.paidPeriods?.[period] ?? false,
                 _isVirtual: true,
                 _originalId: e.id,
               });
@@ -1875,7 +1921,8 @@
                   expenses=${filteredExpenses}
                   categories=${categories}
                   onEdit=${handleEditExpense}
-                  onDelete=${handleDeleteExpenseWrapped} />
+                  onDelete=${handleDeleteExpenseWrapped}
+                  onToggleStatus=${handleToggleExpenseStatus} />
               </${MDiv}>
             ` : html`
               <${MDiv} key=${activeTab}
@@ -1917,7 +1964,8 @@
                     expenses=${filteredExpenses}
                     categories=${categories}
                     onEdit=${handleEditExpense}
-                    onDelete=${handleDeleteExpenseWrapped} />
+                    onDelete=${handleDeleteExpenseWrapped}
+                    onToggleStatus=${handleToggleExpenseStatus} />
                 </div>
               </${MDiv}>
             `}
