@@ -3,8 +3,9 @@
 ## Arquitectura de Agent Teams: PLAN → CREATE → TEST → DEPLOY
 
 El workflow se implementa mediante un equipo de agentes especializados con sub-agentes
-dinámicos. Cada agente principal evalúa la complejidad del task y decide cuántos
-sub-agentes especializados lanzar en paralelo para maximizar calidad y velocidad.
+dinámicos y recursivos. Cada agente principal evalúa la complejidad del task y decide
+cuántos sub-agentes especializados lanzar en paralelo. A su vez, cada sub-agente evalúa
+su propia complejidad y puede lanzar sus propios sub-sub-agentes para maximizar calidad.
 
 ### Cómo Funciona el Equipo
 
@@ -12,54 +13,71 @@ sub-agentes especializados lanzar en paralelo para maximizar calidad y velocidad
 Issue / Solicitud
       │
       ▼
-┌──────────────────────────────────┐
-│          Agente PLANNER          │
-│  Evalúa complejidad → lanza      │
-│  sub-agentes en paralelo:        │
-│  • Exploración de Código         │
-│  • Investigación Web             │
-│  • Análisis de Impacto           │
-│  • Diseño UI/UX                  │
-└──────────────┬───────────────────┘
-               │ plan.md
-               ▼
-┌──────────────────────────────────┐
-│          Agente CREATOR          │
-│  Evalúa plan → lanza             │
-│  sub-agentes por área técnica:   │
-│  • Sub-Agente HTML               │
-│  • Sub-Agente JavaScript         │
-│  • Sub-Agente CSS/Tailwind       │
-│  • Sub-Agente Refactoring        │
-└──────────────┬───────────────────┘
-               │ reporte.md
-               ▼
-┌──────────────────────────────────┐
-│          Agente TESTER           │
-│  Lanza validaciones en paralelo: │
-│  • Validador HTML                │
-│  • Validador JavaScript          │
-│  • Validador CSS/Tailwind        │
-│  • Validador Funcional           │
-│  • Validador Accesibilidad       │
-└──────────────┬───────────────────┘
-               │ resultado.md
-               ▼
-┌──────────────────────────────────┐
-│         Agente DEPLOYER          │
-│  Según complejidad lanza:        │
-│  • Sub-Agente Documentador       │
-│  • Sub-Agente Reviewer Final     │
-└──────────────────────────────────┘
+┌──────────────────────────────────────────────────────────┐
+│                    Agente PLANNER                        │
+│  Evalúa complejidad → lanza sub-agentes en paralelo:    │
+│  • Sub-Agente Exploración de Código                     │
+│      └─ [si COMPLEJO] sub-sub-agentes por módulo        │
+│  • Sub-Agente Investigación Web                         │
+│      └─ [si COMPLEJO] sub-sub-agentes por tema          │
+│  • Sub-Agente Análisis de Impacto                       │
+│      └─ [si COMPLEJO] sub-sub-agentes por sistema       │
+│  • Sub-Agente Diseño UI/UX                              │
+│      └─ [si COMPLEJO] sub-sub-agentes por dimensión     │
+└──────────────────────────┬───────────────────────────────┘
+                           │ plan.md
+                           ▼
+┌──────────────────────────────────────────────────────────┐
+│                    Agente CREATOR                        │
+│  Evalúa plan → lanza sub-agentes por área técnica:      │
+│  • Sub-Agente HTML                                      │
+│      └─ [si COMPLEJO] sub-sub-agentes por sección       │
+│  • Sub-Agente JavaScript                                │
+│      └─ [si COMPLEJO] sub-sub-agentes por módulo        │
+│  • Sub-Agente CSS/Tailwind                              │
+│      └─ [si COMPLEJO] sub-sub-agentes por componente    │
+│  • Sub-Agente Refactoring                               │
+│      └─ [si COMPLEJO] sub-sub-agentes por archivo       │
+└──────────────────────────┬───────────────────────────────┘
+                           │ reporte.md
+                           ▼
+┌──────────────────────────────────────────────────────────┐
+│                    Agente TESTER                         │
+│  Lanza validaciones en paralelo:                        │
+│  • Sub-Agente Validador HTML                            │
+│      └─ [si COMPLEJO] sub-sub-agentes por sección       │
+│  • Sub-Agente Validador JavaScript                      │
+│      └─ [si COMPLEJO] sub-sub-agentes por módulo        │
+│  • Sub-Agente Validador CSS/Tailwind                    │
+│      └─ [si COMPLEJO] sub-sub-agentes por archivo       │
+│  • Sub-Agente Validador Funcional                       │
+│      └─ [si COMPLEJO] sub-sub-agentes por feature       │
+│  • Sub-Agente Validador Accesibilidad                   │
+│      └─ [si COMPLEJO] sub-sub-agentes por componente    │
+└──────────────────────────┬───────────────────────────────┘
+                           │ resultado.md
+                           ▼
+┌──────────────────────────────────────────────────────────┐
+│                   Agente DEPLOYER                        │
+│  Según complejidad lanza:                               │
+│  • Sub-Agente Documentador                              │
+│      └─ [si COMPLEJO] sub-sub-agentes por feature       │
+│  • Sub-Agente Reviewer Final                            │
+│      └─ [si COMPLEJO] sub-sub-agentes por área del diff │
+└──────────────────────────────────────────────────────────┘
 ```
 
-### Escala de Complejidad (usada por todos los agentes)
+### Escala de Complejidad (usada por todos los agentes y sub-agentes)
 
-| Nivel | Criterio | Sub-agentes |
-|-------|----------|-------------|
-| **SIMPLE** | 1-2 archivos, cambio menor | 0 — el agente actúa directamente |
+| Nivel | Criterio | Acción |
+|-------|----------|--------|
+| **SIMPLE** | 1-2 archivos o áreas, cambio menor | 0 sub-agentes — actúa directamente |
 | **MODERADO** | 3-5 archivos o múltiples funciones | 2-3 sub-agentes en paralelo |
 | **COMPLEJO** | +5 archivos o integración entre sistemas | 4+ sub-agentes en paralelo |
+
+> **Arquitectura recursiva**: Los sub-agentes también aplican esta misma escala
+> para decidir si lanzar sus propios sub-sub-agentes. La profundidad máxima es
+> 2 niveles (sub-agente → sub-sub-agente). Los sub-sub-agentes siempre actúan directamente.
 
 ### Agente PLANNER — Fase de Análisis
 **Responsabilidad**: Evaluar complejidad, lanzar sub-agentes de investigación y producir un plan detallado.
@@ -102,7 +120,8 @@ Issue / Solicitud
 3. **Fallo temprano**: Si TESTER reporta fallos críticos, vuelve a CREATOR con el contexto del error.
 4. **Un agente principal a la vez**: Nunca ejecutar dos fases en paralelo sobre el mismo feature.
 5. **Sub-agentes en paralelo**: Dentro de cada fase, los sub-agentes se lanzan simultáneamente cuando no tienen dependencias entre sí.
-6. **Escalado dinámico**: Cada agente decide cuántos sub-agentes lanzar según la complejidad evaluada — no hay un número fijo.
+6. **Escalado dinámico**: Cada agente y sub-agente decide cuántos sub-agentes lanzar según la complejidad evaluada — no hay un número fijo.
+7. **Recursión controlada**: Los sub-agentes pueden lanzar sus propios sub-sub-agentes. Los sub-sub-agentes NO pueden lanzar más agentes (profundidad máxima: 2 niveles).
 
 ---
 
