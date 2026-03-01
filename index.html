@@ -173,6 +173,8 @@
     .flex-col-reverse { flex-direction: column-reverse; }
     .pt-4 { padding-top: 1rem; }
     .min-w-28 { min-width: 7rem; }
+    .min-w-36 { min-width: 9rem; }
+    .justify-end { justify-content: flex-end; }
   </style>
 </head>
 
@@ -1048,64 +1050,99 @@
     };
 
     // ═══════════════════════════════════════════════════════════════
-    // FAB Selector de Período (bottom-left floating, reemplaza BottomNav)
+    // FAB Principal — speed-dial que agrupa "Nuevo Gasto" y selector de período
     // ═══════════════════════════════════════════════════════════════
 
-    const PeriodFAB = ({ activeTab, onChangeTab }) => {
+    const MainFAB = ({ activeTab, onChangeTab, onAddExpense }) => {
       const [open, setOpen] = useState(false);
+      const [showPeriods, setShowPeriods] = useState(false);
       const ref = useRef(null);
 
       // Cerrar al tocar fuera del FAB
       useEffect(() => {
         if (!open) return;
         const close = (e) => {
-          if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+          if (ref.current && !ref.current.contains(e.target)) {
+            setOpen(false);
+            setShowPeriods(false);
+          }
         };
         document.addEventListener('pointerdown', close);
         return () => document.removeEventListener('pointerdown', close);
       }, [open]);
 
       const currentTab = TAB_VIEWS.find(t => t.id === activeTab) || TAB_VIEWS[0];
+      const handleClose = () => { setOpen(false); setShowPeriods(false); };
 
-      return html`<div ref=${ref} className="fixed bottom-6 left-6 z-40 flex flex-col-reverse items-start gap-2">
+      return html`<div ref=${ref} className="fixed bottom-6 right-6 z-40 flex flex-col-reverse items-end gap-2">
 
-        <!-- FAB principal — muestra ícono del período actual -->
+        <!-- FAB principal -->
         <${MDiv} initial=${{ scale: 0 }} animate=${{ scale: 1 }} transition=${{ delay: 0.3, type: 'spring' }}>
           <${HapticButton}
-            onClick=${() => setOpen(v => !v)}
-            className="w-14 h-14 bg-surface-elevated dark:bg-surface-elevated-dark border border-divider/50 dark:border-divider-dark/50 rounded-full shadow-lg dark:shadow-black/40 flex items-center justify-center theme-transition">
+            onClick=${() => { if (open) { handleClose(); } else { setOpen(true); } }}
+            className="w-14 h-14 bg-ink dark:bg-ink-dark text-white dark:text-surface-dark rounded-full shadow-lg shadow-ink/20 dark:shadow-black/40 flex items-center justify-center theme-transition">
             <${AnimatePresence} mode="wait">
               ${open
                 ? html`<${MDiv} key="x" initial=${{ rotate: -45, scale: 0 }} animate=${{ rotate: 0, scale: 1 }} exit=${{ rotate: 45, scale: 0 }} transition=${{ duration: 0.18 }}>
-                    <${X} size=${20} strokeWidth=${2} className="text-ink dark:text-ink-dark" />
+                    <${X} size=${20} strokeWidth=${2} />
                   </${MDiv}>`
-                : html`<${MDiv} key=${currentTab.id} initial=${{ scale: 0 }} animate=${{ scale: 1 }} exit=${{ scale: 0 }} transition=${{ duration: 0.18 }}>
-                    <${LucideIcon} name=${currentTab.icon} size=${20} strokeWidth=${1.5} className="text-ink dark:text-ink-dark" />
+                : html`<${MDiv} key="plus" initial=${{ scale: 0 }} animate=${{ scale: 1 }} exit=${{ scale: 0 }} transition=${{ duration: 0.18 }}>
+                    <${Plus} size=${24} strokeWidth=${2} />
                   </${MDiv}>`
               }
             </${AnimatePresence}>
           </${HapticButton}>
         </${MDiv}>
 
-        <!-- Opciones de período — se expanden hacia arriba con animación escalonada -->
+        <!-- Opciones de período (nivel 2) — se muestran al seleccionar "Cambiar período" -->
         <${AnimatePresence}>
-          ${open && TAB_VIEWS.map((tab, i) => html`
+          ${open && showPeriods && TAB_VIEWS.map((tab, i) => html`
             <${MDiv}
               key=${tab.id}
               initial=${{ opacity: 0, y: 8, scale: 0.92 }}
               animate=${{ opacity: 1, y: 0, scale: 1, transition: { type: 'spring', stiffness: 420, damping: 28, delay: i * 0.05 } }}
               exit=${{ opacity: 0, y: 6, scale: 0.95, transition: { duration: 0.15, delay: (TAB_VIEWS.length - 1 - i) * 0.04 } }}>
               <${HapticButton}
-                onClick=${() => { onChangeTab(tab.id); setOpen(false); }}
-                className=${`flex items-center gap-2.5 px-4 py-2.5 rounded-2xl shadow-sm text-sm font-medium theme-transition min-w-28 ${activeTab === tab.id
+                onClick=${() => { onChangeTab(tab.id); handleClose(); }}
+                className=${`flex items-center gap-2.5 px-4 py-2.5 rounded-2xl shadow-sm text-sm font-medium theme-transition min-w-28 justify-end ${activeTab === tab.id
                   ? 'bg-ink dark:bg-ink-dark text-white dark:text-surface-dark shadow-ink/20 dark:shadow-black/40'
                   : 'bg-surface-elevated dark:bg-surface-elevated-dark text-ink dark:text-ink-dark border border-divider/50 dark:border-divider-dark/50'
                 }`}>
-                <${LucideIcon} name=${tab.icon} size=${15} strokeWidth=${activeTab === tab.id ? 2 : 1.5} />
                 ${tab.label}
+                <${LucideIcon} name=${tab.icon} size=${15} strokeWidth=${activeTab === tab.id ? 2 : 1.5} />
               </${HapticButton}>
             </${MDiv}>
           `)}
+        </${AnimatePresence}>
+
+        <!-- Acciones principales (nivel 1) — "Nuevo Gasto" y "Cambiar período" -->
+        <${AnimatePresence}>
+          ${open && !showPeriods && html`
+            <${MDiv}
+              key="expense"
+              initial=${{ opacity: 0, y: 8, scale: 0.92 }}
+              animate=${{ opacity: 1, y: 0, scale: 1, transition: { type: 'spring', stiffness: 420, damping: 28, delay: 0.05 } }}
+              exit=${{ opacity: 0, y: 6, scale: 0.95, transition: { duration: 0.12 } }}>
+              <${HapticButton}
+                onClick=${() => { handleClose(); onAddExpense(); }}
+                className="flex items-center gap-2.5 px-4 py-2.5 rounded-2xl shadow-sm text-sm font-medium theme-transition bg-ink dark:bg-ink-dark text-white dark:text-surface-dark shadow-ink/20 dark:shadow-black/40 min-w-36 justify-end">
+                Nuevo Gasto
+                <${Plus} size=${15} strokeWidth=${2} />
+              </${HapticButton}>
+            </${MDiv}>
+            <${MDiv}
+              key="period"
+              initial=${{ opacity: 0, y: 8, scale: 0.92 }}
+              animate=${{ opacity: 1, y: 0, scale: 1, transition: { type: 'spring', stiffness: 420, damping: 28 } }}
+              exit=${{ opacity: 0, y: 6, scale: 0.95, transition: { duration: 0.12, delay: 0.04 } }}>
+              <${HapticButton}
+                onClick=${() => setShowPeriods(true)}
+                className="flex items-center gap-2.5 px-4 py-2.5 rounded-2xl shadow-sm text-sm font-medium theme-transition bg-surface-elevated dark:bg-surface-elevated-dark text-ink dark:text-ink-dark border border-divider/50 dark:border-divider-dark/50 min-w-36 justify-end">
+                Cambiar período
+                <${LucideIcon} name=${currentTab.icon} size=${15} strokeWidth=${1.5} />
+              </${HapticButton}>
+            </${MDiv}>
+          `}
         </${AnimatePresence}>
       </div>`;
     };
@@ -1826,18 +1863,11 @@
           </${AnimatePresence}>
         </div>
 
-        <!-- FAB añadir gasto -->
-        <${MDiv} className="fixed bottom-6 right-6 z-40"
-          initial=${{ scale: 0 }} animate=${{ scale: 1 }} transition=${{ delay: 0.3, type: 'spring' }}>
-          <${HapticButton}
-            onClick=${() => { setEditingExpense(null); setShowExpenseModal(true); }}
-            className="w-14 h-14 bg-ink dark:bg-ink-dark text-white dark:text-surface-dark rounded-full shadow-lg shadow-ink/20 dark:shadow-black/40 flex items-center justify-center theme-transition">
-            <${Plus} size=${24} strokeWidth=${2} />
-          </${HapticButton}>
-        </${MDiv}>
-
-        <!-- FAB selector de período -->
-        <${PeriodFAB} activeTab=${activeTab} onChangeTab=${setActiveTab} />
+        <!-- FAB principal (speed-dial): agrupa "Nuevo Gasto" y selector de período -->
+        <${MainFAB}
+          activeTab=${activeTab}
+          onChangeTab=${setActiveTab}
+          onAddExpense=${() => { setEditingExpense(null); setShowExpenseModal(true); }} />
 
         <!-- Modales -->
         <${AnimatePresence}>
