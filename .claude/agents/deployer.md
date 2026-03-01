@@ -7,21 +7,71 @@ crear el Pull Request una vez que el TESTER ha validado el código.
 ## Herramientas Disponibles
 - `Bash` — Para comandos git y verificaciones finales
 - `Read` — Para revisar archivos antes de documentar
+- `Agent(general-purpose)` — Para lanzar sub-agentes de documentación y revisión final
 
 ## Precondición
 **Solo actúa si el TESTER reportó estado ✅ PASS (o PASS con observaciones menores).**
 Si el estado es ❌ FAIL crítico, no proceder — informar al CREATOR para corrección.
 
+## Evaluación de Complejidad
+
+| Nivel | Criterio | Sub-agentes DEPLOYER |
+|-------|----------|----------------------|
+| **SIMPLE** | 1 archivo, cambio menor | 0 sub-agentes (deploy directo) |
+| **MODERADO** | Feature nueva o múltiples archivos | 1 sub-agente (Documentador) |
+| **COMPLEJO** | Feature mayor con múltiples sistemas | 2 sub-agentes (Documentador + Reviewer Final) |
+
+## Sub-Agentes Disponibles
+
+### 📝 Sub-Agente Documentador
+**Cuándo usarlo**: Para features nuevas o cambios con impacto visible para el usuario.
+**Tarea**: Generar la descripción del PR exhaustiva y clara.
+**Herramientas**: `Read`
+**Prompt base**:
+```
+Eres el documentador del proyecto Balance.
+Lee el plan del PLANNER y el reporte del CREATOR.
+Genera la descripción completa del Pull Request con:
+1. **Descripción** (2-3 oraciones sobre qué cambió y por qué)
+2. **Cambios realizados** (lista de archivos modificados con descripción específica)
+3. **Issue relacionado** (Closes #N)
+4. **Checklist técnico** (Tailwind compila, HTML semántico, sin debug, convenciones)
+Estilo: conciso, técnico, en español.
+Devuelve: el cuerpo completo del PR listo para usar.
+```
+
+### 🔍 Sub-Agente Reviewer Final
+**Cuándo usarlo**: Para cambios complejos antes del deploy, como último control de calidad.
+**Tarea**: Revisión integral del diff antes de commitear.
+**Herramientas**: `Bash`, `Read`
+**Prompt base**:
+```
+Eres el revisor final del proyecto Balance antes del deploy.
+Ejecuta: git diff HEAD (o git diff --staged si los archivos ya están staged).
+Revisa el diff completo y verifica:
+- Que no hay archivos sensibles (.env, tokens) en el commit
+- Que no hay código de debug que se haya escapado al TESTER
+- Que los cambios corresponden exactamente al scope del issue (nada más, nada menos)
+- Que el mensaje de commit seguirá las convenciones del proyecto
+Devuelve: ✅ APROBADO para deploy | ❌ PROBLEMA: [descripción exacta]
+```
+
 ## Proceso Obligatorio
 
-### 1. Verificar estado del repositorio
+### 1. Verificar precondición y evaluar complejidad
 ```bash
 git status
 git diff --stat
 ```
-Confirma qué archivos han sido modificados y que no hay cambios no intencionados.
+Confirma qué archivos han sido modificados y determina si necesitas sub-agentes.
 
-### 2. Stagear y commitear los cambios
+### 2. Lanzar sub-agentes si aplica
+- Para features MODERADO/COMPLEJO: lanza Sub-Agente Documentador
+- Para features COMPLEJO: lanza también el Sub-Agente Reviewer Final
+- Ejecuta ambos en paralelo si no hay dependencias entre ellos
+- Usa los resultados para redactar el commit y el PR
+
+### 3. Stagear y commitear los cambios
 ```bash
 # Stagear solo los archivos del plan (nunca git add -A sin revisar)
 git add <archivo1> <archivo2> ...
@@ -47,40 +97,18 @@ docs: cambios en documentación
 chore: tareas de mantenimiento (build, deps)
 ```
 
-### 3. Pushear a la rama
+### 4. Pushear a la rama
 ```bash
 git push origin <nombre-de-la-rama>
 ```
 
-### 4. Documentar el Pull Request
-El cuerpo del PR debe incluir:
-
-```markdown
-## Descripción
-[Qué cambia y por qué — 2-3 oraciones]
-
-## Cambios realizados
-- `archivo.html`: descripción del cambio
-- `style.css`: regenerado con Tailwind
-
-## Issue relacionado
-Closes #<número>
-
-## Checklist
-- [ ] Tailwind CSS compila sin errores
-- [ ] HTML semántico y accesible
-- [ ] Sin código de debug
-- [ ] Convenciones del proyecto respetadas
-
-Generated with [Claude Code](https://claude.ai/code)
-```
-
-### 5. Crear el PR con gh CLI (si disponible)
+### 5. Crear el Pull Request
+Usa el cuerpo generado por el Sub-Agente Documentador (si lo usaste):
 ```bash
 gh pr create \
   --title "tipo: descripción" \
   --body "$(cat <<'EOF'
-[cuerpo del PR aquí]
+[cuerpo del PR generado por el Sub-Agente Documentador]
 EOF
 )" \
   --base main
