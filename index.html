@@ -164,12 +164,13 @@
       transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
     }
 
-    /* Utilidades adicionales para Bottom Nav y navegación */
-    .pb-36 { padding-bottom: 9rem; }
-    .h-16 { height: 4rem; }
+    /* Utilidades adicionales para FABs y navegación */
+    .pb-24 { padding-bottom: 6rem; }
     .bottom-0 { bottom: 0; }
-    .bottom-20 { bottom: 5rem; }
+    .bottom-6 { bottom: 1.5rem; }
     .left-0 { left: 0; }
+    .left-6 { left: 1.5rem; }
+    .flex-col-reverse { flex-direction: column-reverse; }
     .pt-4 { padding-top: 1rem; }
     .min-w-28 { min-width: 7rem; }
   </style>
@@ -1047,6 +1048,69 @@
     };
 
     // ═══════════════════════════════════════════════════════════════
+    // FAB Selector de Período (bottom-left floating, reemplaza BottomNav)
+    // ═══════════════════════════════════════════════════════════════
+
+    const PeriodFAB = ({ activeTab, onChangeTab }) => {
+      const [open, setOpen] = useState(false);
+      const ref = useRef(null);
+
+      // Cerrar al tocar fuera del FAB
+      useEffect(() => {
+        if (!open) return;
+        const close = (e) => {
+          if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+        };
+        document.addEventListener('pointerdown', close);
+        return () => document.removeEventListener('pointerdown', close);
+      }, [open]);
+
+      const currentTab = TAB_VIEWS.find(t => t.id === activeTab) || TAB_VIEWS[0];
+
+      return html`<div ref=${ref} className="fixed bottom-6 left-6 z-40 flex flex-col-reverse items-start gap-2">
+
+        <!-- FAB principal — muestra ícono del período actual -->
+        <${MDiv} initial=${{ scale: 0 }} animate=${{ scale: 1 }} transition=${{ delay: 0.3, type: 'spring' }}>
+          <${HapticButton}
+            onClick=${() => setOpen(v => !v)}
+            className="w-14 h-14 bg-surface-elevated dark:bg-surface-elevated-dark border border-divider/50 dark:border-divider-dark/50 rounded-full shadow-lg dark:shadow-black/40 flex items-center justify-center theme-transition">
+            <${AnimatePresence} mode="wait">
+              ${open
+                ? html`<${MDiv} key="x" initial=${{ rotate: -45, scale: 0 }} animate=${{ rotate: 0, scale: 1 }} exit=${{ rotate: 45, scale: 0 }} transition=${{ duration: 0.18 }}>
+                    <${X} size=${20} strokeWidth=${2} className="text-ink dark:text-ink-dark" />
+                  </${MDiv}>`
+                : html`<${MDiv} key=${currentTab.id} initial=${{ scale: 0 }} animate=${{ scale: 1 }} exit=${{ scale: 0 }} transition=${{ duration: 0.18 }}>
+                    <${LucideIcon} name=${currentTab.icon} size=${20} strokeWidth=${1.5} className="text-ink dark:text-ink-dark" />
+                  </${MDiv}>`
+              }
+            </${AnimatePresence}>
+          </${HapticButton}>
+        </${MDiv}>
+
+        <!-- Opciones de período — se expanden hacia arriba con animación escalonada -->
+        <${AnimatePresence}>
+          ${open && TAB_VIEWS.map((tab, i) => html`
+            <${MDiv}
+              key=${tab.id}
+              initial=${{ opacity: 0, y: 8, scale: 0.92 }}
+              animate=${{ opacity: 1, y: 0, scale: 1, transition: { type: 'spring', stiffness: 420, damping: 28, delay: i * 0.05 } }}
+              exit=${{ opacity: 0, y: 6, scale: 0.95, transition: { duration: 0.15, delay: (TAB_VIEWS.length - 1 - i) * 0.04 } }}>
+              <${HapticButton}
+                onClick=${() => { onChangeTab(tab.id); setOpen(false); }}
+                className=${`flex items-center gap-2.5 px-4 py-2.5 rounded-2xl shadow-sm text-sm font-medium theme-transition min-w-28 ${activeTab === tab.id
+                  ? 'bg-ink dark:bg-ink-dark text-white dark:text-surface-dark shadow-ink/20 dark:shadow-black/40'
+                  : 'bg-surface-elevated dark:bg-surface-elevated-dark text-ink dark:text-ink-dark border border-divider/50 dark:border-divider-dark/50'
+                }`}>
+                <${LucideIcon} name=${tab.icon} size=${15} strokeWidth=${activeTab === tab.id ? 2 : 1.5} />
+                ${tab.label}
+              </${HapticButton}>
+            </${MDiv}>
+          `)}
+        </${AnimatePresence}>
+      </div>`;
+    };
+
+    // ═══════════════════════════════════════════════════════════════
     // Barra de categorías (gráfico horizontal)
     // ═══════════════════════════════════════════════════════════════
 
@@ -1642,7 +1706,7 @@
       // Auth guard
       if (!user) return html`<${AuthScreen} loading=${isInitialLoading} />`;
 
-      return html`<div className="min-h-screen bg-surface dark:bg-surface-dark pb-36 theme-transition">
+      return html`<div className="min-h-screen bg-surface dark:bg-surface-dark pb-24 theme-transition">
         <!-- Header -->
         <div className="sticky top-0 z-40 bg-surface/80 dark:bg-surface-dark/80 backdrop-blur-xl border-b border-divider/50 dark:border-divider-dark/50 theme-transition safe-padding-top">
           <div className="max-w-lg mx-auto px-5 pt-4 pb-3 space-y-2">
@@ -1762,8 +1826,8 @@
           </${AnimatePresence}>
         </div>
 
-        <!-- FAB -->
-        <${MDiv} className="fixed bottom-20 right-6 z-40"
+        <!-- FAB añadir gasto -->
+        <${MDiv} className="fixed bottom-6 right-6 z-40"
           initial=${{ scale: 0 }} animate=${{ scale: 1 }} transition=${{ delay: 0.3, type: 'spring' }}>
           <${HapticButton}
             onClick=${() => { setEditingExpense(null); setShowExpenseModal(true); }}
@@ -1772,8 +1836,8 @@
           </${HapticButton}>
         </${MDiv}>
 
-        <!-- Barra de navegación inferior -->
-        <${BottomNav} activeTab=${activeTab} onChangeTab=${setActiveTab} />
+        <!-- FAB selector de período -->
+        <${PeriodFAB} activeTab=${activeTab} onChangeTab=${setActiveTab} />
 
         <!-- Modales -->
         <${AnimatePresence}>
