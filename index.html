@@ -1760,22 +1760,33 @@
               </div>
             </div>
             <!-- Fila 2: Navegación de período (swipe izq/der para cambiar mes) -->
-            <div className="flex items-center">
-              ${hasDateFilter
-                ? html`<span className="text-sm font-medium text-muted dark:text-muted-dark">${getFilterPeriodLabel(filters)}</span>`
-                : html`<span
-                    className="text-sm font-semibold text-ink dark:text-ink-dark"
-                    style=${{ userSelect: 'none', padding: '4px 0' }}
-                    onTouchStart=${(e) => { swipeTouchX.current = e.touches[0].clientX; }}
-                    onTouchEnd=${(e) => {
-                      const dx = e.changedTouches[0].clientX - swipeTouchX.current;
-                      if (dx < -40) nextPeriod();
-                      else if (dx > 40) prevPeriod();
-                    }}
-                  >
-                    ${activeTab === 'year' ? `${viewYear}` : `${getMesNombre(viewMonth)} ${viewYear}`}
-                  </span>`
-              }
+            <div className="flex items-center overflow-hidden">
+              <${AnimatePresence} mode="wait">
+                ${hasDateFilter
+                  ? html`<${MDiv} key="filter-label"
+                        initial=${{ opacity: 0, y: 4 }} animate=${{ opacity: 1, y: 0 }} exit=${{ opacity: 0, y: -4 }}
+                        transition=${{ duration: 0.16, ease: 'easeOut' }}>
+                        <span className="text-sm font-medium text-muted dark:text-muted-dark">${getFilterPeriodLabel(filters)}</span>
+                      </${MDiv}>`
+                  : html`<${MDiv}
+                        key=${activeTab + '-' + (activeTab === 'year' ? viewYear : `${viewMonth}-${viewYear}`)}
+                        initial=${{ opacity: 0, y: 4 }} animate=${{ opacity: 1, y: 0 }} exit=${{ opacity: 0, y: -4 }}
+                        transition=${{ duration: 0.16, ease: 'easeOut' }}>
+                        <span
+                          className="text-sm font-semibold text-ink dark:text-ink-dark"
+                          style=${{ userSelect: 'none', padding: '4px 0' }}
+                          onTouchStart=${(e) => { swipeTouchX.current = e.touches[0].clientX; }}
+                          onTouchEnd=${(e) => {
+                            const dx = e.changedTouches[0].clientX - swipeTouchX.current;
+                            if (dx < -40) nextPeriod();
+                            else if (dx > 40) prevPeriod();
+                          }}
+                        >
+                          ${activeTab === 'year' ? `${viewYear}` : `${getMesNombre(viewMonth)} ${viewYear}`}
+                        </span>
+                      </${MDiv}>`
+                }
+              </${AnimatePresence}>
             </div>
           </div>
         </div>
@@ -1809,17 +1820,25 @@
           <!-- Main content por tab -->
           <${AnimatePresence} mode="wait">
             ${activeTab === 'year' ? html`
-              <${YearView} key="year" expenses=${expensesWithRecurring} categories=${categories} year=${viewYear} />
+              <${MDiv} key="year"
+                initial=${{ opacity: 0, y: 10 }} animate=${{ opacity: 1, y: 0 }} exit=${{ opacity: 0, y: -10 }}
+                transition=${{ type: 'spring', stiffness: 350, damping: 35 }}>
+                <${YearView} expenses=${expensesWithRecurring} categories=${categories} year=${viewYear} />
+              </${MDiv}>
             ` : activeTab === 'fortnight' ? html`
-              <${FortnightView} key="fortnight"
-                expenses=${filteredExpenses}
-                categories=${categories}
-                onEdit=${handleEditExpense}
-                onDelete=${handleDeleteExpenseWrapped} />
+              <${MDiv} key="fortnight"
+                initial=${{ opacity: 0, y: 10 }} animate=${{ opacity: 1, y: 0 }} exit=${{ opacity: 0, y: -10 }}
+                transition=${{ type: 'spring', stiffness: 350, damping: 35 }}>
+                <${FortnightView}
+                  expenses=${filteredExpenses}
+                  categories=${categories}
+                  onEdit=${handleEditExpense}
+                  onDelete=${handleDeleteExpenseWrapped} />
+              </${MDiv}>
             ` : html`
               <${MDiv} key=${activeTab}
-                initial=${{ opacity: 0, x: 30 }} animate=${{ opacity: 1, x: 0 }} exit=${{ opacity: 0, x: -30 }}
-                transition=${{ type: 'spring', stiffness: 300, damping: 30 }}
+                initial=${{ opacity: 0, y: 10 }} animate=${{ opacity: 1, y: 0 }} exit=${{ opacity: 0, y: -10 }}
+                transition=${{ type: 'spring', stiffness: 350, damping: 35 }}
                 className="space-y-5">
 
                 <!-- Summary -->
