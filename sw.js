@@ -2,7 +2,9 @@
 // BALANCE — Service Worker (Cache-first para shell, network-first para API)
 // ═══════════════════════════════════════════════════════════════
 
-const CACHE_NAME = 'balance-v1';
+// Incrementar CACHE_VERSION cuando se actualiza el app shell
+const CACHE_VERSION = 2;
+const CACHE_NAME = `balance-v${CACHE_VERSION}`;
 
 // Recursos del app shell que se cachean al instalar
 const APP_SHELL = [
@@ -35,6 +37,9 @@ self.addEventListener('activate', (event) => {
 
 // ─── Fetch: network-first para API/Firebase, cache-first para el resto
 self.addEventListener('fetch', (event) => {
+  // Ignorar solicitudes que no son GET
+  if (event.request.method !== 'GET') return;
+
   const url = new URL(event.request.url);
 
   // No cachear requests a Firebase, ESM, o Google APIs (siempre network)
@@ -58,18 +63,25 @@ self.addEventListener('fetch', (event) => {
     caches.match(event.request).then((cached) => {
       if (cached) return cached;
       return fetch(event.request).then((response) => {
-        // Cachear respuestas válidas de mismo origen
-        if (response && response.status === 200 && response.type === 'basic') {
+        // Solo cachear respuestas válidas de mismo origen
+        if (
+          response &&
+          response.status === 200 &&
+          response.type === 'basic' &&
+          event.request.url.startsWith(self.location.origin)
+        ) {
           const clone = response.clone();
           caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
         }
         return response;
+      }).catch(() => {
+        // Fallback offline: devolver la página principal para navegación
+        if (event.request.mode === 'navigate') {
+          return caches.match('./index.html');
+        }
+        // Para otros recursos, retornar respuesta vacía
+        return new Response('', { status: 503, statusText: 'Service Unavailable' });
       });
-    }).catch(() => {
-      // Fallback offline: devolver la página principal
-      if (event.request.mode === 'navigate') {
-        return caches.match('./index.html');
-      }
     })
   );
 });

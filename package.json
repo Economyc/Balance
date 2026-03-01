@@ -1,16 +1,18 @@
 {
   "name": "balance",
   "version": "1.0.0",
-  "description": "",
+  "description": "Control inteligente de tus gastos. Simple, claro y sin estrés.",
   "main": "tailwind.config.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build:css": "tailwindcss -i ./input.css -o ./style.css --minify",
+    "watch:css": "tailwindcss -i ./input.css -o ./style.css --watch",
+    "build": "npm run build:css"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Economyc/Balance.git"
   },
-  "keywords": [],
+  "keywords": ["finance", "pwa", "expenses", "budget"],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
