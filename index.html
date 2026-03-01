@@ -1389,6 +1389,9 @@
         }
       }, [activeTab, viewMonth]);
 
+      // Ref para detectar swipe en el selector de período
+      const swipeTouchX = useRef(0);
+
       // Auth Listener
       useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, (u) => {
@@ -1655,23 +1658,22 @@
                   onLogout=${handleLogout} />
               </div>
             </div>
-            <!-- Fila 2: Navegación de período -->
+            <!-- Fila 2: Navegación de período (swipe izq/der para cambiar mes) -->
             <div className="flex items-center">
               ${hasDateFilter
                 ? html`<span className="text-sm font-medium text-muted dark:text-muted-dark">${getFilterPeriodLabel(filters)}</span>`
-                : html`<div className="flex items-center gap-1">
-                    <${HapticButton} onClick=${prevPeriod}
-                      className="p-1.5 rounded-lg hover:bg-surface-elevated dark:hover:bg-surface-elevated-dark transition-colors">
-                      <${ChevronLeft} size=${16} strokeWidth=${2} className="text-muted dark:text-muted-dark" />
-                    </${HapticButton}>
-                    <span className="text-sm font-semibold text-ink dark:text-ink-dark min-w-28 text-center">
-                      ${activeTab === 'year' ? `${viewYear}` : `${getMesNombre(viewMonth)} ${viewYear}`}
-                    </span>
-                    <${HapticButton} onClick=${nextPeriod}
-                      className="p-1.5 rounded-lg hover:bg-surface-elevated dark:hover:bg-surface-elevated-dark transition-colors">
-                      <${ChevronRight} size=${16} strokeWidth=${2} className="text-muted dark:text-muted-dark" />
-                    </${HapticButton}>
-                  </div>`
+                : html`<span
+                    className="text-sm font-semibold text-ink dark:text-ink-dark"
+                    style=${{ userSelect: 'none', padding: '4px 0' }}
+                    onTouchStart=${(e) => { swipeTouchX.current = e.touches[0].clientX; }}
+                    onTouchEnd=${(e) => {
+                      const dx = e.changedTouches[0].clientX - swipeTouchX.current;
+                      if (dx < -40) nextPeriod();
+                      else if (dx > 40) prevPeriod();
+                    }}
+                  >
+                    ${activeTab === 'year' ? `${viewYear}` : `${getMesNombre(viewMonth)} ${viewYear}`}
+                  </span>`
               }
             </div>
           </div>
