@@ -7,6 +7,17 @@
     content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>Balance — Control de Gastos</title>
 
+  <!-- SEO / Descripción -->
+  <meta name="description" content="Control inteligente de tus gastos. Simple, claro y sin estrés." />
+  <meta name="application-name" content="Balance" />
+  <meta name="robots" content="noindex, nofollow" />
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Balance — Control de Gastos" />
+  <meta property="og:description" content="Control inteligente de tus gastos. Simple, claro y sin estrés." />
+  <meta property="og:image" content="icons/icon-512.png" />
+
   <!-- Tipografía Inter -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -19,6 +30,7 @@
   <link rel="manifest" href="manifest.json" />
 
   <!-- iOS PWA — Añadir a Pantalla de Inicio -->
+  <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="Balance" />
@@ -26,6 +38,9 @@
 
   <!-- Android / Chrome / iOS Dynamic -->
   <meta name="theme-color" content="#F5F5F7" />
+
+  <!-- Preload recursos críticos -->
+  <link rel="preload" href="style.css" as="style" />
 
   <!-- Tailwind CSS Estático (Producción) -->
   <link rel="stylesheet" href="style.css" />
@@ -1700,7 +1715,19 @@
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('./sw.js')
-          .then((reg) => console.log('SW registrado:', reg.scope))
+          .then((reg) => {
+            // Verificar actualizaciones periódicamente
+            reg.update();
+            // Notificar cuando hay una nueva versión disponible
+            reg.addEventListener('updatefound', () => {
+              const newWorker = reg.installing;
+              newWorker.addEventListener('statechange', () => {
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  console.log('Nueva versión disponible. Recarga para actualizar.');
+                }
+              });
+            });
+          })
           .catch((err) => console.warn('SW error:', err));
       });
     }
