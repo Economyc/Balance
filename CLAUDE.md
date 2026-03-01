@@ -1,35 +1,72 @@
 # Balance - Instrucciones para Claude
 
-## Metodología de Trabajo: PLAN → CREATE → TEST → DEPLOY
+## Arquitectura de Agent Teams: PLAN → CREATE → TEST → DEPLOY
 
-Siempre sigue esta estructura al trabajar en cualquier tarea en este repositorio:
+El workflow se implementa mediante un equipo de agentes especializados. Cada fase es
+orquestada por un agente distinto con herramientas y responsabilidades específicas,
+lo que permite mayor velocidad, calidad y paralelización del trabajo.
 
-### 1. PLAN
-- Analiza el issue o solicitud en detalle
-- Lee los archivos relevantes antes de proponer cambios
-- Crea un plan claro con los pasos a seguir
-- Reporta el plan en el comentario del issue/PR antes de empezar a codificar
+### Cómo Funciona el Equipo
 
-### 2. CREATE
-- Implementa los cambios según el plan definido
-- Sigue las convenciones del proyecto (HTML semántico, Tailwind CSS, JavaScript vanilla)
-- Escribe código limpio, legible y sin duplicación
-- Añade comentarios solo donde la lógica no sea evidente
-- No introducir dependencias nuevas sin justificación
+```
+Issue / Solicitud
+      │
+      ▼
+┌─────────────┐     plan.md      ┌──────────────┐
+│   Agente    │ ──────────────► │    Agente    │
+│   PLANNER   │                  │   CREATOR    │
+│ (Analiza y  │                  │ (Implementa  │
+│  planifica) │                  │   el código) │
+└─────────────┘                  └──────────────┘
+                                        │
+                          reporte.md    │
+                    ┌───────────────────┘
+                    ▼
+             ┌─────────────┐     resultado.md  ┌──────────────┐
+             │   Agente    │ ─────────────────►│    Agente    │
+             │   TESTER    │                   │   DEPLOYER   │
+             │ (Verifica y │                   │ (Crea PR y   │
+             │  valida)    │                   │  documenta)  │
+             └─────────────┘                   └──────────────┘
+```
 
-### 3. TEST
-- Verifica que los cambios funcionan correctamente
-- Comprueba que el CSS de Tailwind compila sin errores: `npx tailwindcss -i ./input.css -o ./style.css`
-- Revisa que el HTML es válido y accesible
-- Prueba la funcionalidad en el contexto del proyecto
+### Agente PLANNER — Fase de Análisis
+**Responsabilidad**: Analizar el issue y producir un plan de implementación detallado.
+**Herramientas permitidas**: `Glob`, `Grep`, `Read`, `WebSearch`, `WebFetch`, `Agent(Explore)`
+**Entradas**: Issue o solicitud del usuario
+**Salida requerida**: Plan estructurado con pasos, archivos afectados y decisiones de diseño
+**Instrucciones específicas**: Ver `.claude/agents/planner.md`
 
-### 4. DEPLOY
-- Crea un Pull Request con los cambios
-- El PR debe incluir:
-  - Descripción clara de qué cambia y por qué
-  - Referencia al issue original
-  - Lista de archivos modificados
-- Documenta cualquier decisión de diseño importante
+### Agente CREATOR — Fase de Implementación
+**Responsabilidad**: Implementar los cambios según el plan del PLANNER.
+**Herramientas permitidas**: `Read`, `Edit`, `Write`, `Bash`, `Glob`, `Grep`
+**Entradas**: Plan producido por el PLANNER
+**Salida requerida**: Código implementado, limpio y listo para pruebas
+**Instrucciones específicas**: Ver `.claude/agents/creator.md`
+
+### Agente TESTER — Fase de Validación
+**Responsabilidad**: Verificar que la implementación cumple los requisitos y no introduce errores.
+**Herramientas permitidas**: `Bash`, `Read`, `Grep`, `Glob`
+**Entradas**: Código implementado por el CREATOR
+**Salida requerida**: Reporte de pruebas con estado (PASS/FAIL) y observaciones
+**Instrucciones específicas**: Ver `.claude/agents/tester.md`
+
+### Agente DEPLOYER — Fase de Despliegue
+**Responsabilidad**: Preparar y crear el Pull Request con toda la documentación.
+**Herramientas permitidas**: `Bash` (git commands), `Read`
+**Entradas**: Reporte del TESTER
+**Salida requerida**: Pull Request creado con descripción clara y referencia al issue
+**Instrucciones específicas**: Ver `.claude/agents/deployer.md`
+
+---
+
+## Reglas de Orquestación
+
+1. **Secuencia estricta**: PLANNER → CREATOR → TESTER → DEPLOYER. No saltear fases.
+2. **Handoff explícito**: Cada agente documenta su salida antes de pasar al siguiente.
+3. **Fallo temprano**: Si TESTER reporta fallos críticos, vuelve a CREATOR con el contexto del error.
+4. **Un agente a la vez**: Nunca ejecutar dos fases en paralelo sobre el mismo feature.
+5. **Paralelización permitida**: El PLANNER puede lanzar sub-agentes Explore en paralelo para investigar diferentes partes del código simultáneamente.
 
 ---
 
