@@ -44,23 +44,26 @@ jobs:
 
       # Este paso crea el PR automáticamente cuando Claude termina sus cambios
       - name: Auto-crear Pull Request
-        if: steps.claude.outputs.branch_name != ''
+        if: github.event_name == 'issues' || github.event_name == 'issue_comment'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           ISSUE_NUMBER="${{ github.event.issue.number }}"
+          # Obtener la rama actual del checkout
           BRANCH="${{ steps.claude.outputs.branch_name }}"
-
+          
+          if [ -z "$BRANCH" ]; then
+            echo "No hay rama nueva, no se crea PR"
+            exit 0
+          fi
+      
           gh pr create \
-            --title "fix: cambios para Issue #${ISSUE_NUMBER}" \
-            --body "## Cambios implementados por Claude
-
-          Resolves #${ISSUE_NUMBER}
-
-          PR creado automáticamente por Claude tras implementar los cambios solicitados.
-
+            --title "feat: cambios para Issue #${ISSUE_NUMBER}" \
+            --body "Resolves #${ISSUE_NUMBER}
+      
           Generated with [Claude Code](https://claude.ai/code)" \
             --base main \
             --head "${BRANCH}" \
-          || echo "PR ya existe para esta rama"
+
+          
 
