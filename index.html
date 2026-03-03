@@ -504,7 +504,7 @@
         <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted dark:text-muted-dark font-medium">$</span>
         <input type="text" inputMode="numeric" value=${display} onChange=${handleChange}
           placeholder=${placeholder}
-          className="w-full bg-surface dark:bg-surface-dark rounded-2xl pl-8 pr-4 py-3.5 text-ink dark:text-ink-dark font-medium placeholder:text-muted/50 dark:placeholder:text-muted-dark/50 outline-none focus:ring-2 focus:ring-ink/10 dark:focus:ring-ink-dark/10 transition-shadow theme-transition" />
+          className="w-full bg-surface dark:bg-surface-dark rounded-xl pl-8 pr-4 py-2.5 text-ink dark:text-ink-dark font-medium placeholder:text-muted/50 dark:placeholder:text-muted-dark/50 outline-none focus:ring-2 focus:ring-ink/10 dark:focus:ring-ink-dark/10 transition-shadow theme-transition" />
       </div>`;
     };
 
@@ -586,7 +586,7 @@
               <label className="text-xs font-medium text-muted dark:text-muted-dark uppercase tracking-wider mb-1.5 block">Nombre</label>
               <input type="text" value=${name} onChange=${(e) => setName(e.target.value)}
                 placeholder="Ej: Almuerzo, Netflix..."
-                className="w-full bg-surface dark:bg-surface-dark rounded-2xl px-4 py-3.5 text-ink dark:text-ink-dark font-medium placeholder:text-muted/50 dark:placeholder:text-muted-dark/50 outline-none focus:ring-2 focus:ring-ink/10 dark:focus:ring-ink-dark/10 theme-transition" />
+                className="w-full bg-surface dark:bg-surface-dark rounded-xl px-4 py-2.5 text-ink dark:text-ink-dark font-medium placeholder:text-muted/50 dark:placeholder:text-muted-dark/50 outline-none focus:ring-2 focus:ring-ink/10 dark:focus:ring-ink-dark/10 theme-transition" />
             </div>
 
             <div>
@@ -613,10 +613,10 @@
             <div>
               <label className="text-xs font-medium text-muted dark:text-muted-dark uppercase tracking-wider mb-1.5 block">Fecha</label>
               <input type="date" value=${date} onChange=${(e) => setDate(e.target.value)}
-                className="w-full bg-surface dark:bg-surface-dark rounded-2xl px-4 py-3.5 text-ink dark:text-ink-dark font-medium outline-none focus:ring-2 focus:ring-ink/10 dark:focus:ring-ink-dark/10 theme-transition" />
+                className="w-full bg-surface dark:bg-surface-dark rounded-xl px-4 py-2.5 text-ink dark:text-ink-dark font-medium outline-none focus:ring-2 focus:ring-ink/10 dark:focus:ring-ink-dark/10 theme-transition" />
             </div>
 
-            <div className="flex items-center justify-between bg-surface dark:bg-surface-dark rounded-2xl px-4 py-3.5 theme-transition">
+            <div className="flex items-center justify-between bg-surface dark:bg-surface-dark rounded-xl px-4 py-3 theme-transition">
               <div className="flex items-center gap-3">
                 <${RefreshCw} size=${18} strokeWidth=${1.5} className="text-muted dark:text-muted-dark" />
                 <span className="text-sm font-medium text-ink dark:text-ink-dark">Gasto Recurrente</span>
@@ -781,7 +781,7 @@
       };
       const handleClear = () => { onApply({ dateFrom: '', dateTo: '', categoryId: '', onlyRecurring: false }); onClose(); };
 
-      const inputCls = "w-full bg-surface dark:bg-surface-dark rounded-2xl px-4 py-3.5 text-ink dark:text-ink-dark font-medium outline-none focus:ring-2 focus:ring-ink/10 dark:focus:ring-ink-dark/10 theme-transition";
+      const inputCls = "w-full bg-surface dark:bg-surface-dark rounded-xl px-4 py-2.5 text-ink dark:text-ink-dark font-medium outline-none focus:ring-2 focus:ring-ink/10 dark:focus:ring-ink-dark/10 theme-transition";
       const segBtn = (active) => `flex-1 py-2.5 text-sm font-semibold rounded-xl transition-all ${active ? 'bg-ink dark:bg-ink-dark text-white dark:text-surface-dark shadow-sm' : 'text-muted dark:text-muted-dark'}`;
       const fnBtn = (active) => `flex-1 py-2.5 text-sm font-semibold rounded-xl transition-all ${active ? 'bg-ink dark:bg-ink-dark text-white dark:text-surface-dark' : 'bg-surface-elevated dark:bg-surface-elevated-dark text-muted dark:text-muted-dark'}`;
 
