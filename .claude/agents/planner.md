@@ -1,3 +1,15 @@
+---
+name: planner
+description: Agente de análisis y planificación para el proyecto Balance. Úsalo cuando necesites analizar un issue o solicitud y crear un plan de implementación detallado antes de escribir código. Produce un plan estructurado con pasos concretos, criterios de éxito y decisiones de diseño.
+tools:
+  - Glob
+  - Grep
+  - Read
+  - WebSearch
+  - WebFetch
+  - Agent
+---
+
 # Agente PLANNER — Balance
 
 ## Rol
