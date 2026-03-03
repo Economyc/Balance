@@ -1514,7 +1514,7 @@
               <button
                 key=${id}
                 onClick=${() => onSection(id)}
-                className=${`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-left ${
+                className=${`w-full flex items-center gap-3 px-4 py-2 rounded-lg text-sm font-medium transition-all text-left ${
                   section === id
                     ? 'bg-ink dark:bg-ink-dark text-white dark:text-surface-dark shadow-sm'
                     : 'text-muted dark:text-muted-dark hover:bg-surface dark:hover:bg-surface-dark hover:text-ink dark:hover:text-ink-dark'
@@ -1532,7 +1532,7 @@
               <!-- Toggle de tema -->
               <button
                 onClick=${toggle}
-                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-muted dark:text-muted-dark hover:bg-surface dark:hover:bg-surface-dark hover:text-ink dark:hover:text-ink-dark transition-all">
+                className="w-full flex items-center gap-3 px-4 py-2 rounded-lg text-sm font-medium text-muted dark:text-muted-dark hover:bg-surface dark:hover:bg-surface-dark hover:text-ink dark:hover:text-ink-dark transition-all">
                 ${dark
                   ? html`<${Sun} size=${17} strokeWidth=${1.5} />`
                   : html`<${Moon} size=${17} strokeWidth=${1.5} />`}
@@ -1542,7 +1542,7 @@
               <!-- Categorías -->
               <button
                 onClick=${onOpenCategories}
-                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-muted dark:text-muted-dark hover:bg-surface dark:hover:bg-surface-dark hover:text-ink dark:hover:text-ink-dark transition-all">
+                className="w-full flex items-center gap-3 px-4 py-2 rounded-lg text-sm font-medium text-muted dark:text-muted-dark hover:bg-surface dark:hover:bg-surface-dark hover:text-ink dark:hover:text-ink-dark transition-all">
                 <${Tag} size=${17} strokeWidth=${1.5} />
                 Categorías
               </button>
@@ -1630,7 +1630,7 @@
             <div className="flex items-center gap-4">
               <h2 className="text-xl font-bold text-ink dark:text-ink-dark">Dashboard</h2>
               <!-- Navegación de mes -->
-              <div className="flex items-center gap-2 bg-surface dark:bg-surface-dark rounded-xl px-3 py-1.5 theme-transition">
+              <div className="flex items-center gap-2 bg-surface dark:bg-surface-dark rounded-xl px-3 py-2 theme-transition">
                 <button onClick=${onPrevMonth} className="p-1 rounded-lg hover:bg-surface-elevated dark:hover:bg-surface-elevated-dark transition-colors">
                   <${ChevronLeft} size=${16} strokeWidth=${2} className="text-ink dark:text-ink-dark" />
                 </button>
@@ -1845,7 +1845,7 @@
           <div className="flex items-center justify-between px-8 py-5 border-b border-divider dark:border-divider-dark bg-surface-elevated dark:bg-surface-elevated-dark theme-transition shrink-0">
             <div className="flex items-center gap-4">
               <h2 className="text-xl font-bold text-ink dark:text-ink-dark">Gastos</h2>
-              <div className="flex items-center gap-2 bg-surface dark:bg-surface-dark rounded-xl px-3 py-1.5 theme-transition">
+              <div className="flex items-center gap-2 bg-surface dark:bg-surface-dark rounded-xl px-3 py-2 theme-transition">
                 <button onClick=${onPrevMonth} className="p-1 rounded-lg hover:bg-surface-elevated dark:hover:bg-surface-elevated-dark transition-colors">
                   <${ChevronLeft} size=${16} strokeWidth=${2} className="text-ink dark:text-ink-dark" />
                 </button>
@@ -2041,7 +2041,7 @@
           <div className="flex items-center justify-between px-8 py-5 border-b border-divider dark:border-divider-dark bg-surface-elevated dark:bg-surface-elevated-dark theme-transition shrink-0">
             <div className="flex items-center gap-4">
               <h2 className="text-xl font-bold text-ink dark:text-ink-dark">Análisis</h2>
-              <div className="flex items-center gap-2 bg-surface dark:bg-surface-dark rounded-xl px-3 py-1.5 theme-transition">
+              <div className="flex items-center gap-2 bg-surface dark:bg-surface-dark rounded-xl px-3 py-2 theme-transition">
                 <button onClick=${onPrevYear} className="p-1 rounded-lg hover:bg-surface-elevated dark:hover:bg-surface-elevated-dark transition-colors">
                   <${ChevronLeft} size=${16} strokeWidth=${2} className="text-ink dark:text-ink-dark" />
                 </button>
