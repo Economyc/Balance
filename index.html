@@ -1680,12 +1680,12 @@
               <!-- Gráfico de barras mensual -->
               <div className="col-span-2 bg-surface-elevated dark:bg-surface-elevated-dark rounded-2xl p-5 shadow-sm theme-transition">
                 <h3 className="text-xs font-medium text-muted dark:text-muted-dark uppercase tracking-wider mb-4">Gastos Mensuales — ${viewYear}</h3>
-                <div className="flex items-end gap-1.5 h-32">
+                <div className="flex gap-1.5 h-32">
                   ${monthlyTotals.map((total, i) => html`
-                    <div key=${i} className="flex-1 flex flex-col items-center gap-1">
+                    <div key=${i} className="flex-1 flex flex-col justify-end items-center gap-1">
                       <${MDiv}
                         initial=${{ height: 0 }}
-                        animate=${{ height: `${Math.max((total / maxBar) * 100, total > 0 ? 2 : 0)}%` }}
+                        animate=${{ height: Math.max(Math.round((total / maxBar) * 108), total > 0 ? 3 : 0) }}
                         transition=${{ duration: 0.5, delay: i * 0.03 }}
                         className=${`w-full rounded-lg ${i === viewMonth ? 'bg-ink dark:bg-ink-dark' : 'bg-divider dark:bg-divider-dark'}`} />
                       <span className="text-[9px] text-muted dark:text-muted-dark font-medium">${MESES_CORTO[i]}</span>
@@ -2074,17 +2074,16 @@
             <!-- Gráfico de tendencia mensual — ancho completo -->
             <div className="bg-surface-elevated dark:bg-surface-elevated-dark rounded-2xl p-5 shadow-sm theme-transition">
               <h3 className="text-xs font-medium text-muted dark:text-muted-dark uppercase tracking-wider mb-4">Tendencia Mensual — ${viewYear}</h3>
-              <div className="flex items-end gap-2 h-36">
+              <div className="flex gap-2 h-36">
                 ${monthlyTotals.map((total, i) => html`
-                  <div key=${i} className="flex-1 flex flex-col items-center gap-1">
+                  <div key=${i} className="flex-1 flex flex-col justify-end items-center gap-1">
                     <${MDiv}
                       initial=${{ height: 0 }}
-                      animate=${{ height: `${Math.max((total / maxBar) * 100, total > 0 ? 2 : 0)}%` }}
+                      animate=${{ height: Math.max(Math.round((total / maxBar) * 120), total > 0 ? 3 : 0) }}
                       transition=${{ duration: 0.5, delay: i * 0.03 }}
                       className="w-full rounded-lg"
-                      style=${{ backgroundColor: total > 0 ? CATEGORY_COLORS[0] : 'var(--tw-divider, #E5E5E7)' }} />
+                      style=${{ backgroundColor: total > 0 ? CATEGORY_COLORS[0] : '#E5E5E7' }} />
                     <span className="text-[9px] text-muted dark:text-muted-dark font-medium">${MESES_CORTO[i]}</span>
-                    ${total > 0 && html`<span className="text-[8px] text-muted dark:text-muted-dark hidden xl:block">${formatCOP(total).replace('$', '')}</span>`}
                   </div>
                 `)}
               </div>
