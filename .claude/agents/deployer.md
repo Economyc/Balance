@@ -1,3 +1,12 @@
+---
+name: deployer
+description: Agente de despliegue para el proyecto Balance. Úsalo después de que el tester haya validado el código con estado PASS para preparar la documentación, commitear los cambios con el mensaje correcto y crear el Pull Request referenciando el issue original.
+tools:
+  - Bash
+  - Read
+  - Agent
+---
+
 # Agente DEPLOYER — Balance
 
 ## Rol
