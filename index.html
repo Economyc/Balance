@@ -2514,17 +2514,8 @@
       const hasActiveFilters = filters.dateFrom || filters.dateTo || filters.categoryId || filters.onlyRecurring;
       const hasDateFilter = Boolean(filters.dateFrom || filters.dateTo);
 
-      // Initial Auth Check
-      if (isInitialLoading) {
-        return html`<div className="min-h-screen flex items-center justify-center bg-surface dark:bg-surface-dark">
-          <${Loader2} size=${40} className="animate-spin text-ink dark:text-ink-dark" />
-        </div>`;
-      }
-
-      // Auth guard
-      if (!user) return html`<${AuthScreen} loading=${isInitialLoading} />`;
-
       // ─── Helpers para navegación de mes ──────────────────────────
+      // Declarados antes de los early returns para cumplir las Rules of Hooks
       const goPrevMonth = useCallback(() => {
         if (viewMonth === 0) { setViewMonth(11); setViewYear(y => y - 1); }
         else setViewMonth(m => m - 1);
@@ -2534,6 +2525,16 @@
         if (viewMonth === 11) { setViewMonth(0); setViewYear(y => y + 1); }
         else setViewMonth(m => m + 1);
       }, [viewMonth]);
+
+      // Initial Auth Check
+      if (isInitialLoading) {
+        return html`<div className="min-h-screen flex items-center justify-center bg-surface dark:bg-surface-dark">
+          <${Loader2} size=${40} className="animate-spin text-ink dark:text-ink-dark" />
+        </div>`;
+      }
+
+      // Auth guard
+      if (!user) return html`<${AuthScreen} loading=${isInitialLoading} />`;
 
       // ─── Layout Desktop ───────────────────────────────────────────
       if (isDesktop) {
