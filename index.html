@@ -197,7 +197,7 @@
       UtensilsCrossed, Car, Home, Heart, Gamepad2, GraduationCap,
       CreditCard, MoreHorizontal, ShoppingBag, Wifi, Phone, Briefcase,
       Plane, Gift, Music, BookOpen, Dumbbell, Baby, Dog, Leaf,
-      LogIn, Loader2, CheckCircle2
+      LogIn, Loader2, CheckCircle2, Search
     } from "lucide-react";
     import htm from "htm";
 
@@ -1495,56 +1495,61 @@
         <div className="w-60 h-screen flex flex-col bg-surface-elevated dark:bg-surface-elevated-dark border-r border-divider dark:border-divider-dark theme-transition shrink-0">
 
           <!-- Logo / título -->
-          <div className="px-6 pt-8 pb-6">
+          <div className="px-5 pt-7 pb-5 border-b border-divider dark:border-divider-dark">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 bg-ink dark:bg-ink-dark rounded-xl flex items-center justify-center theme-transition">
+              <div className="w-9 h-9 bg-ink dark:bg-ink-dark rounded-xl flex items-center justify-center theme-transition shadow-sm">
                 <${Wallet} size=${18} strokeWidth=${1.5} className="text-white dark:text-surface-dark" />
               </div>
-              <span className="text-lg font-bold text-ink dark:text-ink-dark tracking-tight">Balance</span>
+              <div>
+                <span className="text-base font-bold text-ink dark:text-ink-dark tracking-tight">Balance</span>
+                <p className="text-[10px] text-muted dark:text-muted-dark leading-none mt-0.5">Control de gastos</p>
+              </div>
             </div>
           </div>
 
           <!-- Navegación principal -->
-          <nav className="flex-1 px-3 space-y-1">
+          <nav className="flex-1 px-3 pt-4 space-y-0.5">
+            <p className="px-3 pb-2 text-[10px] font-semibold text-muted dark:text-muted-dark uppercase tracking-wider">Menú</p>
             ${navItems.map(({ id, label, Icon }) => html`
               <button
                 key=${id}
                 onClick=${() => onSection(id)}
-                className=${`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors text-left ${
+                className=${`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-left ${
                   section === id
-                    ? 'bg-ink dark:bg-ink-dark text-white dark:text-surface-dark'
-                    : 'text-ink dark:text-ink-dark hover:bg-surface dark:hover:bg-surface-dark'
+                    ? 'bg-ink dark:bg-ink-dark text-white dark:text-surface-dark shadow-sm'
+                    : 'text-muted dark:text-muted-dark hover:bg-surface dark:hover:bg-surface-dark hover:text-ink dark:hover:text-ink-dark'
                 }`}>
-                <${Icon} size=${18} strokeWidth=${1.5} />
+                <${Icon} size=${17} strokeWidth=${section === id ? 2 : 1.5} />
                 ${label}
               </button>
             `)}
           </nav>
 
           <!-- Sección inferior: tema + categorías + usuario -->
-          <div className="px-3 pb-4 space-y-1">
-            <!-- Toggle de tema -->
-            <button
-              onClick=${toggle}
-              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-ink dark:text-ink-dark hover:bg-surface dark:hover:bg-surface-dark transition-colors">
-              ${dark
-                ? html`<${Sun} size=${18} strokeWidth=${1.5} />`
-                : html`<${Moon} size=${18} strokeWidth=${1.5} />`}
-              ${dark ? 'Modo Claro' : 'Modo Oscuro'}
-            </button>
+          <div className="px-3 pb-4">
+            <div className="space-y-0.5 pb-2 border-b border-divider dark:border-divider-dark mb-3">
+              <p className="px-3 pb-2 text-[10px] font-semibold text-muted dark:text-muted-dark uppercase tracking-wider">Configuración</p>
+              <!-- Toggle de tema -->
+              <button
+                onClick=${toggle}
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-muted dark:text-muted-dark hover:bg-surface dark:hover:bg-surface-dark hover:text-ink dark:hover:text-ink-dark transition-all">
+                ${dark
+                  ? html`<${Sun} size=${17} strokeWidth=${1.5} />`
+                  : html`<${Moon} size=${17} strokeWidth=${1.5} />`}
+                ${dark ? 'Modo Claro' : 'Modo Oscuro'}
+              </button>
 
-            <!-- Categorías -->
-            <button
-              onClick=${onOpenCategories}
-              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-ink dark:text-ink-dark hover:bg-surface dark:hover:bg-surface-dark transition-colors">
-              <${Tag} size=${18} strokeWidth=${1.5} />
-              Categorías
-            </button>
-
-            <div className="h-px bg-divider dark:bg-divider-dark my-2" />
+              <!-- Categorías -->
+              <button
+                onClick=${onOpenCategories}
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-muted dark:text-muted-dark hover:bg-surface dark:hover:bg-surface-dark hover:text-ink dark:hover:text-ink-dark transition-all">
+                <${Tag} size=${17} strokeWidth=${1.5} />
+                Categorías
+              </button>
+            </div>
 
             <!-- Perfil de usuario -->
-            <div className="flex items-center gap-3 px-3 py-2.5">
+            <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-surface dark:hover:bg-surface-dark transition-colors group">
               ${user?.photoURL
                 ? html`<img src=${user.photoURL} alt="Avatar" className="w-8 h-8 rounded-full object-cover shrink-0" />`
                 : html`<div className="w-8 h-8 rounded-full bg-ink dark:bg-ink-dark flex items-center justify-center shrink-0">
@@ -1557,9 +1562,9 @@
               </div>
               <button
                 onClick=${onLogout}
-                className="p-1.5 rounded-lg hover:bg-surface dark:hover:bg-surface-dark transition-colors shrink-0"
+                className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-divider dark:hover:bg-divider-dark transition-all shrink-0"
                 title="Cerrar sesión">
-                <${LogOut} size=${15} strokeWidth=${1.5} className="text-muted dark:text-muted-dark" />
+                <${LogOut} size=${14} strokeWidth=${1.5} className="text-muted dark:text-muted-dark" />
               </button>
             </div>
           </div>
@@ -1582,6 +1587,7 @@
       const totalMes = useMemo(() => monthExpenses.reduce((s, e) => s + e.amount, 0), [monthExpenses]);
       const recurringMes = useMemo(() => monthExpenses.filter((e) => e.recurring).reduce((s, e) => s + e.amount, 0), [monthExpenses]);
       const pendientesMes = useMemo(() => monthExpenses.filter((e) => !(e.paid ?? false)).length, [monthExpenses]);
+      const pendientesMonto = useMemo(() => monthExpenses.filter((e) => !(e.paid ?? false)).reduce((s, e) => s + e.amount, 0), [monthExpenses]);
 
       // Totales mensuales del año para el gráfico de barras
       const monthlyTotals = useMemo(() => {
@@ -1653,17 +1659,17 @@
                 { label: 'Total Mes', value: formatCOP(totalMes), Icon: TrendingDown, sub: `${monthExpenses.length} gastos` },
                 { label: 'Recurrentes', value: formatCOP(recurringMes), Icon: RefreshCw, sub: 'Gastos fijos' },
                 { label: 'Total Año', value: formatCOP(totalAnio), Icon: Calendar, sub: String(viewYear) },
-                { label: 'Pendientes', value: String(pendientesMes), Icon: Circle, sub: 'sin pagar', isCount: true },
-              ].map(({ label, value, Icon, sub, isCount }) => html`
-                <div key=${label} className="bg-surface-elevated dark:bg-surface-elevated-dark rounded-2xl p-5 shadow-sm theme-transition">
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-xs font-medium text-muted dark:text-muted-dark uppercase tracking-wider">${label}</span>
-                    <div className="w-8 h-8 bg-surface dark:bg-surface-dark rounded-xl flex items-center justify-center theme-transition">
-                      <${Icon} size=${15} strokeWidth=${1.5} className="text-muted dark:text-muted-dark" />
+                { label: 'Por Pagar', value: formatCOP(pendientesMonto), Icon: Circle, sub: `${pendientesMes} sin pagar` },
+              ].map(({ label, value, Icon, sub }) => html`
+                <div key=${label} className="bg-surface-elevated dark:bg-surface-elevated-dark rounded-2xl p-5 shadow-sm theme-transition hover:shadow-md transition-shadow">
+                  <div className="flex items-start justify-between mb-3">
+                    <span className="text-xs font-semibold text-muted dark:text-muted-dark uppercase tracking-wider">${label}</span>
+                    <div className="w-8 h-8 bg-surface dark:bg-surface-dark rounded-xl flex items-center justify-center theme-transition shrink-0">
+                      <${Icon} size=${15} strokeWidth=${1.5} className="text-ink dark:text-ink-dark" />
                     </div>
                   </div>
-                  <p className=${`font-bold text-ink dark:text-ink-dark tracking-tight ${isCount ? 'text-3xl' : 'text-xl'}`}>${value}</p>
-                  <p className="text-xs text-muted dark:text-muted-dark mt-1">${sub}</p>
+                  <p className="text-2xl font-bold text-ink dark:text-ink-dark tracking-tight">${value}</p>
+                  <p className="text-xs text-muted dark:text-muted-dark mt-1.5">${sub}</p>
                 </div>
               `)}
             </div>
@@ -1862,24 +1868,30 @@
           <!-- Barra de filtros -->
           <div className="flex items-center gap-3 px-8 py-4 border-b border-divider dark:border-divider-dark bg-surface-elevated dark:bg-surface-elevated-dark theme-transition shrink-0">
             <!-- Búsqueda de texto -->
-            <div className="flex items-center gap-2 flex-1 max-w-xs bg-surface dark:bg-surface-dark rounded-xl px-3 py-2 theme-transition">
-              <${SlidersHorizontal} size=${15} strokeWidth=${1.5} className="text-muted dark:text-muted-dark shrink-0" />
+            <div className="flex items-center gap-2 flex-1 max-w-sm bg-surface dark:bg-surface-dark rounded-xl px-3 py-2.5 theme-transition border border-divider dark:border-divider-dark transition-colors">
+              <${Search} size=${15} strokeWidth=${1.5} className="text-muted dark:text-muted-dark shrink-0" />
               <input
                 type="text"
                 value=${search}
                 onChange=${(e) => setSearch(e.target.value)}
                 placeholder="Buscar gastos..."
                 className="flex-1 bg-transparent text-sm text-ink dark:text-ink-dark placeholder:text-muted/50 dark:placeholder:text-muted-dark/50 outline-none min-w-0" />
+              ${search && html`<button onClick=${() => setSearch('')} className="p-1 rounded-lg hover:bg-divider dark:hover:bg-divider-dark transition-colors shrink-0">
+                <${X} size=${12} strokeWidth=${2.5} className="text-muted dark:text-muted-dark" />
+              </button>`}
             </div>
 
             <!-- Filtro por categoría -->
-            <select
-              value=${filterCat}
-              onChange=${(e) => setFilterCat(e.target.value)}
-              className="bg-surface dark:bg-surface-dark rounded-xl px-3 py-2 text-sm text-ink dark:text-ink-dark outline-none theme-transition">
-              <option value="">Todas las categorías</option>
-              ${categories.map((c) => html`<option key=${c.id} value=${c.id}>${c.name}</option>`)}
-            </select>
+            <div className="relative">
+              <select
+                value=${filterCat}
+                onChange=${(e) => setFilterCat(e.target.value)}
+                className="appearance-none bg-surface dark:bg-surface-dark border border-divider dark:border-divider-dark rounded-xl px-3 py-2.5 pr-8 text-sm text-ink dark:text-ink-dark outline-none theme-transition cursor-pointer hover:bg-surface-elevated dark:hover:bg-surface-elevated-dark transition-colors">
+                <option value="">Todas las categorías</option>
+                ${categories.map((c) => html`<option key=${c.id} value=${c.id}>${c.name}</option>`)}
+              </select>
+              <${ChevronDown} size=${14} strokeWidth=${2} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted dark:text-muted-dark pointer-events-none" />
+            </div>
 
             <!-- Total filtrado -->
             <div className="ml-auto text-right">
