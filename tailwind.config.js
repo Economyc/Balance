@@ -11,7 +11,7 @@ module.exports = {
                 'surface-elevated': { DEFAULT: '#FFFFFF', dark: '#1C1C1E' },
                 divider: { DEFAULT: '#E5E5E7', dark: '#2C2C2E' },
             },
-            fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
+            fontFamily: { sans: ['Poppins', 'system-ui', 'sans-serif'] },
             borderRadius: { '2xl': '1rem', '3xl': '1.5rem' },
         },
     },
