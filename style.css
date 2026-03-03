@@ -86,3 +86,20 @@
 .min-w-\[80px\]{min-width:80px}
 /* xl breakpoint for optional text */
 @media (min-width:1280px){.xl\:block{display:block}}
+/* ─── Additional utilities ─────────────────────────────────── */
+.pr-8{padding-right:2rem}
+.pt-7{padding-top:1.75rem}
+.pb-5{padding-bottom:1.25rem}
+.pt-4{padding-top:1rem}
+.space-y-0\.5>:not([hidden])~:not([hidden]){--tw-space-y-reverse:0;margin-top:calc(.125rem*(1 - var(--tw-space-y-reverse)));margin-bottom:calc(.125rem*var(--tw-space-y-reverse))}
+.shadow-md{--tw-shadow:0 4px 6px -1px rgba(0,0,0,.1),0 2px 4px -2px rgba(0,0,0,.1);--tw-shadow-colored:0 4px 6px -1px var(--tw-shadow-color),0 2px 4px -2px var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow,0 0 #0000),var(--tw-ring-shadow,0 0 #0000),var(--tw-shadow)}
+.hover\:shadow-md:hover{--tw-shadow:0 4px 6px -1px rgba(0,0,0,.1),0 2px 4px -2px rgba(0,0,0,.1);--tw-shadow-colored:0 4px 6px -1px var(--tw-shadow-color),0 2px 4px -2px var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow,0 0 #0000),var(--tw-ring-shadow,0 0 #0000),var(--tw-shadow)}
+.opacity-0{opacity:0}
+.group-hover\:opacity-100{opacity:1}
+.group:hover .group-hover\:opacity-100{opacity:1}
+.transition-all{transition-property:all;transition-timing-function:cubic-bezier(.4,0,.2,1);transition-duration:.15s}
+.right-2\.5{right:.625rem}
+.mt-0\.5{margin-top:.125rem}
+.leading-none{line-height:1}
+.mt-1\.5{margin-top:.375rem}
+.text-2xl{font-size:1.5rem;line-height:2rem}
