@@ -599,7 +599,7 @@
               <div className="grid grid-cols-4 gap-2">
                 ${categories.map((cat) => html`
                   <${HapticButton} key=${cat.id} onClick=${() => setCategoryId(cat.id)}
-                    className=${`flex flex-col items-center gap-1.5 py-3 px-1 rounded-2xl transition-colors text-center theme-transition ${categoryId === cat.id
+                    className=${`flex flex-col items-center gap-1.5 py-2.5 rounded-xl transition-colors text-center theme-transition ${categoryId === cat.id
           ? 'bg-ink dark:bg-ink-dark text-white dark:text-surface-dark'
           : 'bg-surface dark:bg-surface-dark text-ink dark:text-ink-dark hover:bg-divider dark:hover:bg-divider-dark'
         }`}>
@@ -626,7 +626,7 @@
           </div>
 
           <${HapticButton} onClick=${handleSave} disabled=${!canSave}
-            className="w-full bg-ink dark:bg-ink-dark text-white dark:text-surface-dark font-semibold py-4 rounded-2xl text-base mt-6 theme-transition">
+            className="w-full bg-ink dark:bg-ink-dark text-white dark:text-surface-dark font-semibold py-3 rounded-xl text-base mt-5 theme-transition">
             ${isEdit ? 'Guardar Cambios' : 'Agregar Gasto'}
           </${HapticButton}>
         </div>
@@ -702,8 +702,8 @@
                     `)}
                   </div>
                   <div className="flex gap-2">
-                    <${HapticButton} onClick=${() => setShowAdd(false)} className="flex-1 py-2.5 rounded-xl bg-divider dark:bg-divider-dark text-ink dark:text-ink-dark text-sm font-medium">Cancelar</${HapticButton}>
-                    <${HapticButton} onClick=${handleAdd} disabled=${!newName.trim()} className="flex-1 py-2.5 rounded-xl bg-ink dark:bg-ink-dark text-white dark:text-surface-dark text-sm font-medium">Agregar</${HapticButton}>
+                    <${HapticButton} onClick=${() => setShowAdd(false)} className="flex-1 py-2 rounded-lg bg-divider dark:bg-divider-dark text-ink dark:text-ink-dark text-sm font-medium">Cancelar</${HapticButton}>
+                    <${HapticButton} onClick=${handleAdd} disabled=${!newName.trim()} className="flex-1 py-2 rounded-lg bg-ink dark:bg-ink-dark text-white dark:text-surface-dark text-sm font-medium">Agregar</${HapticButton}>
                   </div>
                 </div>
               </${MDiv}>
@@ -715,7 +715,7 @@
             `}
           </${AnimatePresence}>
 
-          <${HapticButton} onClick=${handleSave} className="w-full bg-ink dark:bg-ink-dark text-white dark:text-surface-dark font-semibold py-4 rounded-2xl text-base theme-transition">
+          <${HapticButton} onClick=${handleSave} className="w-full bg-ink dark:bg-ink-dark text-white dark:text-surface-dark font-semibold py-3 rounded-xl text-base theme-transition">
             Guardar
           </${HapticButton}>
         </div>
@@ -853,8 +853,8 @@
             </div>
           </div>
           <div className="flex gap-3 mt-6">
-            <${HapticButton} onClick=${handleClear} className="flex-1 py-4 rounded-2xl bg-surface dark:bg-surface-dark text-ink dark:text-ink-dark font-semibold text-base theme-transition">Limpiar</${HapticButton}>
-            <${HapticButton} onClick=${handleApply} className="flex-1 py-4 rounded-2xl bg-ink dark:bg-ink-dark text-white dark:text-surface-dark font-semibold text-base theme-transition">Aplicar</${HapticButton}>
+            <${HapticButton} onClick=${handleClear} className="flex-1 py-3 rounded-xl bg-surface dark:bg-surface-dark text-ink dark:text-ink-dark font-semibold text-base theme-transition">Limpiar</${HapticButton}>
+            <${HapticButton} onClick=${handleApply} className="flex-1 py-3 rounded-xl bg-ink dark:bg-ink-dark text-white dark:text-surface-dark font-semibold text-base theme-transition">Aplicar</${HapticButton}>
           </div>
         </div>
       </${ModalOverlay}>`;
@@ -1772,7 +1772,7 @@
                             <td className="px-5 py-3 text-center">
                               <button
                                 onClick=${() => onToggleStatus(e)}
-                                className=${`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
+                                className=${`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
                                   isPaid
                                     ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400'
                                     : 'bg-surface dark:bg-surface-dark text-muted dark:text-muted-dark hover:bg-divider dark:hover:bg-divider-dark'
@@ -1966,7 +1966,7 @@
                             <td className="px-6 py-3.5 text-center">
                               <button
                                 onClick=${() => onToggleStatus(e)}
-                                className=${`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
+                                className=${`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
                                   isPaid
                                     ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400'
                                     : 'bg-surface dark:bg-surface-dark text-muted dark:text-muted-dark hover:bg-divider dark:hover:bg-divider-dark'
