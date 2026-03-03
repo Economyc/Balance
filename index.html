@@ -2132,12 +2132,12 @@
                 <div className="flex flex-col items-center gap-6">
                   <!-- Donut con conic-gradient -->
                   <div
-                    className="w-32 h-32 rounded-full"
+                    className="w-32 h-32 rounded-full relative"
                     style=${{ background: totalAnio > 0
                       ? `conic-gradient(${CATEGORY_COLORS[0]} 0% ${recurringPct}%, ${CATEGORY_COLORS[3]} ${recurringPct}% 100%)`
                       : `conic-gradient(#E5E5E7 0% 100%)`
                     }}>
-                    <div className="w-full h-full rounded-full flex items-center justify-center" style=${{ margin: '14px', width: 'calc(100% - 28px)', height: 'calc(100% - 28px)', backgroundColor: 'transparent' }}>
+                    <div className="absolute rounded-full bg-surface-elevated dark:bg-surface-elevated-dark theme-transition" style=${{ inset: '14px' }}>
                     </div>
                   </div>
                   <!-- Leyenda -->
