@@ -1459,6 +1459,708 @@
     };
 
     // ═══════════════════════════════════════════════════════════════
+    // DESKTOP COMPONENTS — Layout para pantallas >= 1024px
+    // ═══════════════════════════════════════════════════════════════
+
+    // Colores para gráficos de categorías
+    const CATEGORY_COLORS = [
+      '#6366F1', '#EC4899', '#F59E0B', '#10B981',
+      '#3B82F6', '#EF4444', '#8B5CF6', '#14B8A6',
+      '#F97316', '#84CC16',
+    ];
+
+    // ─── DesktopSidebar — Navegación lateral ─────────────────────
+    const DesktopSidebar = ({ section, onSection, onOpenCategories, onLogout, user }) => {
+      const { dark, toggle } = useTheme();
+
+      const navItems = [
+        { id: 'dashboard', label: 'Dashboard', Icon: BarChart3 },
+        { id: 'expenses', label: 'Gastos', Icon: Wallet },
+        { id: 'analysis', label: 'Análisis', Icon: TrendingDown },
+      ];
+
+      // Obtener iniciales del nombre del usuario
+      const initials = useMemo(() => {
+        if (!user?.displayName) return '?';
+        return user.displayName
+          .split(' ')
+          .slice(0, 2)
+          .map((n) => n[0])
+          .join('')
+          .toUpperCase();
+      }, [user?.displayName]);
+
+      return html`
+        <div className="w-60 h-screen flex flex-col bg-surface-elevated dark:bg-surface-elevated-dark border-r border-divider dark:border-divider-dark theme-transition shrink-0">
+
+          <!-- Logo / título -->
+          <div className="px-6 pt-8 pb-6">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 bg-ink dark:bg-ink-dark rounded-xl flex items-center justify-center theme-transition">
+                <${Wallet} size=${18} strokeWidth=${1.5} className="text-white dark:text-surface-dark" />
+              </div>
+              <span className="text-lg font-bold text-ink dark:text-ink-dark tracking-tight">Balance</span>
+            </div>
+          </div>
+
+          <!-- Navegación principal -->
+          <nav className="flex-1 px-3 space-y-1">
+            ${navItems.map(({ id, label, Icon }) => html`
+              <button
+                key=${id}
+                onClick=${() => onSection(id)}
+                className=${`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors text-left ${
+                  section === id
+                    ? 'bg-ink dark:bg-ink-dark text-white dark:text-surface-dark'
+                    : 'text-ink dark:text-ink-dark hover:bg-surface dark:hover:bg-surface-dark'
+                }`}>
+                <${Icon} size=${18} strokeWidth=${1.5} />
+                ${label}
+              </button>
+            `)}
+          </nav>
+
+          <!-- Sección inferior: tema + categorías + usuario -->
+          <div className="px-3 pb-4 space-y-1">
+            <!-- Toggle de tema -->
+            <button
+              onClick=${toggle}
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-ink dark:text-ink-dark hover:bg-surface dark:hover:bg-surface-dark transition-colors">
+              ${dark
+                ? html`<${Sun} size=${18} strokeWidth=${1.5} />`
+                : html`<${Moon} size=${18} strokeWidth=${1.5} />`}
+              ${dark ? 'Modo Claro' : 'Modo Oscuro'}
+            </button>
+
+            <!-- Categorías -->
+            <button
+              onClick=${onOpenCategories}
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-ink dark:text-ink-dark hover:bg-surface dark:hover:bg-surface-dark transition-colors">
+              <${Tag} size=${18} strokeWidth=${1.5} />
+              Categorías
+            </button>
+
+            <div className="h-px bg-divider dark:bg-divider-dark my-2" />
+
+            <!-- Perfil de usuario -->
+            <div className="flex items-center gap-3 px-3 py-2.5">
+              ${user?.photoURL
+                ? html`<img src=${user.photoURL} alt="Avatar" className="w-8 h-8 rounded-full object-cover shrink-0" />`
+                : html`<div className="w-8 h-8 rounded-full bg-ink dark:bg-ink-dark flex items-center justify-center shrink-0">
+                    <span className="text-xs font-bold text-white dark:text-surface-dark">${initials}</span>
+                  </div>`
+              }
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold text-ink dark:text-ink-dark truncate">${user?.displayName || 'Usuario'}</p>
+                <p className="text-[10px] text-muted dark:text-muted-dark truncate">${user?.email || ''}</p>
+              </div>
+              <button
+                onClick=${onLogout}
+                className="p-1.5 rounded-lg hover:bg-surface dark:hover:bg-surface-dark transition-colors shrink-0"
+                title="Cerrar sesión">
+                <${LogOut} size=${15} strokeWidth=${1.5} className="text-muted dark:text-muted-dark" />
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+    };
+
+    // ─── DesktopDashboard — Vista principal del dashboard ─────────
+    const DesktopDashboard = ({ expensesWithRecurring, categories, viewMonth, viewYear, onPrevMonth, onNextMonth, onAddExpense, onEdit, onDelete, onToggleStatus }) => {
+
+      // Gastos del mes actual visto
+      const monthExpenses = useMemo(() =>
+        expensesWithRecurring.filter((e) => {
+          const d = parseLocalDate(e.date);
+          return d.getMonth() === viewMonth && d.getFullYear() === viewYear;
+        }),
+        [expensesWithRecurring, viewMonth, viewYear]
+      );
+
+      const totalMes = useMemo(() => monthExpenses.reduce((s, e) => s + e.amount, 0), [monthExpenses]);
+      const recurringMes = useMemo(() => monthExpenses.filter((e) => e.recurring).reduce((s, e) => s + e.amount, 0), [monthExpenses]);
+      const pendientesMes = useMemo(() => monthExpenses.filter((e) => !(e.paid ?? false)).length, [monthExpenses]);
+
+      // Totales mensuales del año para el gráfico de barras
+      const monthlyTotals = useMemo(() => {
+        const arr = Array(12).fill(0);
+        expensesWithRecurring.forEach((e) => {
+          const d = parseLocalDate(e.date);
+          if (d.getFullYear() === viewYear) arr[d.getMonth()] += e.amount;
+        });
+        return arr;
+      }, [expensesWithRecurring, viewYear]);
+
+      const totalAnio = useMemo(() => monthlyTotals.reduce((s, v) => s + v, 0), [monthlyTotals]);
+      const maxBar = Math.max(...monthlyTotals, 1);
+
+      // Desglose por categoría del mes
+      const catTotals = useMemo(() => {
+        const map = {};
+        monthExpenses.forEach((e) => { map[e.categoryId] = (map[e.categoryId] || 0) + e.amount; });
+        return categories
+          .map((c, i) => ({ ...c, total: map[c.id] || 0, color: CATEGORY_COLORS[i % CATEGORY_COLORS.length] }))
+          .filter((c) => c.total > 0)
+          .sort((a, b) => b.total - a.total);
+      }, [monthExpenses, categories]);
+
+      const catGrandTotal = catTotals.reduce((s, c) => s + c.total, 0) || 1;
+
+      // Últimos 8 gastos del mes
+      const recentExpenses = useMemo(() =>
+        [...monthExpenses].sort((a, b) => (b.date > a.date ? 1 : -1)).slice(0, 8),
+        [monthExpenses]
+      );
+
+      const MESES_CORTO = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+
+      return html`
+        <div className="flex-1 flex flex-col overflow-hidden bg-surface dark:bg-surface-dark theme-transition">
+
+          <!-- Header del dashboard -->
+          <div className="flex items-center justify-between px-8 py-5 border-b border-divider dark:border-divider-dark bg-surface-elevated dark:bg-surface-elevated-dark theme-transition shrink-0">
+            <div className="flex items-center gap-4">
+              <h2 className="text-xl font-bold text-ink dark:text-ink-dark">Dashboard</h2>
+              <!-- Navegación de mes -->
+              <div className="flex items-center gap-2 bg-surface dark:bg-surface-dark rounded-xl px-3 py-1.5 theme-transition">
+                <button onClick=${onPrevMonth} className="p-1 rounded-lg hover:bg-surface-elevated dark:hover:bg-surface-elevated-dark transition-colors">
+                  <${ChevronLeft} size=${16} strokeWidth=${2} className="text-ink dark:text-ink-dark" />
+                </button>
+                <span className="text-sm font-semibold text-ink dark:text-ink-dark min-w-[120px] text-center">
+                  ${getMesNombre(viewMonth)} ${viewYear}
+                </span>
+                <button onClick=${onNextMonth} className="p-1 rounded-lg hover:bg-surface-elevated dark:hover:bg-surface-elevated-dark transition-colors">
+                  <${ChevronRight} size=${16} strokeWidth=${2} className="text-ink dark:text-ink-dark" />
+                </button>
+              </div>
+            </div>
+            <button
+              onClick=${onAddExpense}
+              className="flex items-center gap-2 px-4 py-2 bg-ink dark:bg-ink-dark text-white dark:text-surface-dark rounded-xl text-sm font-semibold hover:opacity-90 transition-opacity theme-transition">
+              <${Plus} size=${16} strokeWidth=${2} />
+              Nuevo Gasto
+            </button>
+          </div>
+
+          <!-- Contenido scrollable -->
+          <div className="flex-1 overflow-y-auto px-8 py-6 space-y-6">
+
+            <!-- KPI Cards — 4 columnas -->
+            <div className="grid grid-cols-4 gap-4">
+              ${[
+                { label: 'Total Mes', value: formatCOP(totalMes), Icon: TrendingDown, sub: `${monthExpenses.length} gastos` },
+                { label: 'Recurrentes', value: formatCOP(recurringMes), Icon: RefreshCw, sub: 'Gastos fijos' },
+                { label: 'Total Año', value: formatCOP(totalAnio), Icon: Calendar, sub: String(viewYear) },
+                { label: 'Pendientes', value: String(pendientesMes), Icon: Circle, sub: 'sin pagar', isCount: true },
+              ].map(({ label, value, Icon, sub, isCount }) => html`
+                <div key=${label} className="bg-surface-elevated dark:bg-surface-elevated-dark rounded-2xl p-5 shadow-sm theme-transition">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-xs font-medium text-muted dark:text-muted-dark uppercase tracking-wider">${label}</span>
+                    <div className="w-8 h-8 bg-surface dark:bg-surface-dark rounded-xl flex items-center justify-center theme-transition">
+                      <${Icon} size=${15} strokeWidth=${1.5} className="text-muted dark:text-muted-dark" />
+                    </div>
+                  </div>
+                  <p className=${`font-bold text-ink dark:text-ink-dark tracking-tight ${isCount ? 'text-3xl' : 'text-xl'}`}>${value}</p>
+                  <p className="text-xs text-muted dark:text-muted-dark mt-1">${sub}</p>
+                </div>
+              `)}
+            </div>
+
+            <!-- Fila de gráficos: barras mensuales (2/3) + categorías (1/3) -->
+            <div className="grid grid-cols-3 gap-4">
+
+              <!-- Gráfico de barras mensual -->
+              <div className="col-span-2 bg-surface-elevated dark:bg-surface-elevated-dark rounded-2xl p-5 shadow-sm theme-transition">
+                <h3 className="text-xs font-medium text-muted dark:text-muted-dark uppercase tracking-wider mb-4">Gastos Mensuales — ${viewYear}</h3>
+                <div className="flex items-end gap-1.5 h-32">
+                  ${monthlyTotals.map((total, i) => html`
+                    <div key=${i} className="flex-1 flex flex-col items-center gap-1">
+                      <${MDiv}
+                        initial=${{ height: 0 }}
+                        animate=${{ height: `${Math.max((total / maxBar) * 100, total > 0 ? 2 : 0)}%` }}
+                        transition=${{ duration: 0.5, delay: i * 0.03 }}
+                        className=${`w-full rounded-lg ${i === viewMonth ? 'bg-ink dark:bg-ink-dark' : 'bg-divider dark:bg-divider-dark'}`} />
+                      <span className="text-[9px] text-muted dark:text-muted-dark font-medium">${MESES_CORTO[i]}</span>
+                    </div>
+                  `)}
+                </div>
+              </div>
+
+              <!-- Desglose por categoría -->
+              <div className="bg-surface-elevated dark:bg-surface-elevated-dark rounded-2xl p-5 shadow-sm theme-transition">
+                <h3 className="text-xs font-medium text-muted dark:text-muted-dark uppercase tracking-wider mb-4">Por Categoría</h3>
+                ${catTotals.length === 0
+                  ? html`<div className="flex items-center justify-center h-24 text-muted dark:text-muted-dark text-sm">Sin datos</div>`
+                  : html`<div className="space-y-3">
+                    ${catTotals.map((cat) => html`
+                      <${MDiv} key=${cat.id} layout className="space-y-1">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-1.5">
+                            <div className="w-2 h-2 rounded-full shrink-0" style=${{ backgroundColor: cat.color }} />
+                            <span className="text-xs font-medium text-ink dark:text-ink-dark truncate max-w-[80px]">${cat.name}</span>
+                          </div>
+                          <span className="text-xs font-semibold text-muted dark:text-muted-dark">${((cat.total / catGrandTotal) * 100).toFixed(0)}%</span>
+                        </div>
+                        <div className="h-1.5 bg-surface dark:bg-surface-dark rounded-full overflow-hidden theme-transition">
+                          <${MDiv}
+                            initial=${{ width: 0 }}
+                            animate=${{ width: `${(cat.total / catGrandTotal) * 100}%` }}
+                            transition=${{ duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
+                            style=${{ backgroundColor: cat.color }}
+                            className="h-full rounded-full" />
+                        </div>
+                      </${MDiv}>
+                    `)}
+                  </div>`
+                }
+              </div>
+            </div>
+
+            <!-- Tabla de gastos recientes -->
+            <div className="bg-surface-elevated dark:bg-surface-elevated-dark rounded-2xl shadow-sm theme-transition overflow-hidden">
+              <div className="px-5 py-4 border-b border-divider dark:border-divider-dark">
+                <h3 className="text-sm font-semibold text-ink dark:text-ink-dark">Gastos Recientes</h3>
+              </div>
+              ${recentExpenses.length === 0
+                ? html`<div className="flex flex-col items-center justify-center py-12 gap-2">
+                    <${Inbox} size=${32} strokeWidth=${1} className="text-muted/30 dark:text-muted-dark/30" />
+                    <p className="text-sm text-muted dark:text-muted-dark">Sin gastos este mes</p>
+                  </div>`
+                : html`<table className="w-full">
+                    <thead>
+                      <tr className="border-b border-divider dark:border-divider-dark">
+                        <th className="text-left px-5 py-3 text-xs font-medium text-muted dark:text-muted-dark uppercase tracking-wider">Fecha</th>
+                        <th className="text-left px-5 py-3 text-xs font-medium text-muted dark:text-muted-dark uppercase tracking-wider">Nombre</th>
+                        <th className="text-left px-5 py-3 text-xs font-medium text-muted dark:text-muted-dark uppercase tracking-wider">Categoría</th>
+                        <th className="text-right px-5 py-3 text-xs font-medium text-muted dark:text-muted-dark uppercase tracking-wider">Monto</th>
+                        <th className="text-center px-5 py-3 text-xs font-medium text-muted dark:text-muted-dark uppercase tracking-wider">Estado</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${recentExpenses.map((e) => {
+                        const cat = categories.find((c) => c.id === e.categoryId);
+                        const d = parseLocalDate(e.date);
+                        const isPaid = e.paid ?? false;
+                        return html`
+                          <tr key=${e.id} className="border-b border-divider/50 dark:border-divider-dark/50 last:border-0 hover:bg-surface/50 dark:hover:bg-surface-dark/50 transition-colors">
+                            <td className="px-5 py-3 text-sm text-muted dark:text-muted-dark whitespace-nowrap">
+                              ${d.getDate()} ${getMesNombre(d.getMonth()).slice(0, 3)}
+                            </td>
+                            <td className="px-5 py-3">
+                              <div className="flex items-center gap-2">
+                                <span className=${`text-sm font-medium text-ink dark:text-ink-dark truncate max-w-[180px] ${isPaid ? 'line-through opacity-60' : ''}`}>${e.name}</span>
+                                ${e.recurring && html`<${RefreshCw} size=${11} strokeWidth=${1.5} className="text-muted dark:text-muted-dark shrink-0" />`}
+                              </div>
+                            </td>
+                            <td className="px-5 py-3">
+                              <div className="flex items-center gap-2">
+                                <${LucideIcon} name=${cat?.icon || 'Circle'} size=${14} strokeWidth=${1.5} className="text-muted dark:text-muted-dark" />
+                                <span className="text-sm text-muted dark:text-muted-dark">${cat?.name || '—'}</span>
+                              </div>
+                            </td>
+                            <td className="px-5 py-3 text-right text-sm font-semibold text-ink dark:text-ink-dark whitespace-nowrap">
+                              ${formatCOP(e.amount)}
+                            </td>
+                            <td className="px-5 py-3 text-center">
+                              <button
+                                onClick=${() => onToggleStatus(e)}
+                                className=${`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
+                                  isPaid
+                                    ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400'
+                                    : 'bg-surface dark:bg-surface-dark text-muted dark:text-muted-dark hover:bg-divider dark:hover:bg-divider-dark'
+                                }`}>
+                                ${isPaid ? 'Pagado' : 'Pendiente'}
+                              </button>
+                            </td>
+                          </tr>
+                        `;
+                      })}
+                    </tbody>
+                  </table>`
+              }
+            </div>
+
+          </div>
+        </div>
+      `;
+    };
+
+    // ─── DesktopExpenses — Tabla completa de gastos ───────────────
+    const DesktopExpenses = ({ expensesWithRecurring, categories, viewMonth, viewYear, onPrevMonth, onNextMonth, onAddExpense, onEdit, onDelete, onToggleStatus }) => {
+      const [search, setSearch] = useState('');
+      const [filterCat, setFilterCat] = useState('');
+      const [sortKey, setSortKey] = useState('date');
+      const [sortDir, setSortDir] = useState('desc');
+
+      // Gastos del mes filtrado, con búsqueda y ordenamiento
+      const displayExpenses = useMemo(() => {
+        let result = expensesWithRecurring.filter((e) => {
+          const d = parseLocalDate(e.date);
+          return d.getMonth() === viewMonth && d.getFullYear() === viewYear;
+        });
+
+        if (search.trim()) {
+          const q = search.toLowerCase();
+          result = result.filter((e) => e.name.toLowerCase().includes(q));
+        }
+
+        if (filterCat) result = result.filter((e) => e.categoryId === filterCat);
+
+        result.sort((a, b) => {
+          let cmp = 0;
+          if (sortKey === 'date') cmp = a.date > b.date ? 1 : a.date < b.date ? -1 : 0;
+          else if (sortKey === 'amount') cmp = a.amount - b.amount;
+          else if (sortKey === 'name') cmp = a.name.localeCompare(b.name, 'es');
+          return sortDir === 'asc' ? cmp : -cmp;
+        });
+
+        return result;
+      }, [expensesWithRecurring, viewMonth, viewYear, search, filterCat, sortKey, sortDir]);
+
+      const totalDisplay = useMemo(() => displayExpenses.reduce((s, e) => s + e.amount, 0), [displayExpenses]);
+
+      // Alternar dirección de ordenamiento o cambiar clave
+      const handleSort = (key) => {
+        if (sortKey === key) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+        else { setSortKey(key); setSortDir('desc'); }
+      };
+
+      const SortIcon = ({ col }) => {
+        if (sortKey !== col) return html`<span className="text-muted/40 dark:text-muted-dark/40 ml-1">↕</span>`;
+        return html`<span className="ml-1">${sortDir === 'asc' ? '↑' : '↓'}</span>`;
+      };
+
+      return html`
+        <div className="flex-1 flex flex-col overflow-hidden bg-surface dark:bg-surface-dark theme-transition">
+
+          <!-- Header -->
+          <div className="flex items-center justify-between px-8 py-5 border-b border-divider dark:border-divider-dark bg-surface-elevated dark:bg-surface-elevated-dark theme-transition shrink-0">
+            <div className="flex items-center gap-4">
+              <h2 className="text-xl font-bold text-ink dark:text-ink-dark">Gastos</h2>
+              <div className="flex items-center gap-2 bg-surface dark:bg-surface-dark rounded-xl px-3 py-1.5 theme-transition">
+                <button onClick=${onPrevMonth} className="p-1 rounded-lg hover:bg-surface-elevated dark:hover:bg-surface-elevated-dark transition-colors">
+                  <${ChevronLeft} size=${16} strokeWidth=${2} className="text-ink dark:text-ink-dark" />
+                </button>
+                <span className="text-sm font-semibold text-ink dark:text-ink-dark min-w-[120px] text-center">
+                  ${getMesNombre(viewMonth)} ${viewYear}
+                </span>
+                <button onClick=${onNextMonth} className="p-1 rounded-lg hover:bg-surface-elevated dark:hover:bg-surface-elevated-dark transition-colors">
+                  <${ChevronRight} size=${16} strokeWidth=${2} className="text-ink dark:text-ink-dark" />
+                </button>
+              </div>
+            </div>
+            <button
+              onClick=${onAddExpense}
+              className="flex items-center gap-2 px-4 py-2 bg-ink dark:bg-ink-dark text-white dark:text-surface-dark rounded-xl text-sm font-semibold hover:opacity-90 transition-opacity theme-transition">
+              <${Plus} size=${16} strokeWidth=${2} />
+              Nuevo Gasto
+            </button>
+          </div>
+
+          <!-- Barra de filtros -->
+          <div className="flex items-center gap-3 px-8 py-4 border-b border-divider dark:border-divider-dark bg-surface-elevated dark:bg-surface-elevated-dark theme-transition shrink-0">
+            <!-- Búsqueda de texto -->
+            <div className="flex items-center gap-2 flex-1 max-w-xs bg-surface dark:bg-surface-dark rounded-xl px-3 py-2 theme-transition">
+              <${SlidersHorizontal} size=${15} strokeWidth=${1.5} className="text-muted dark:text-muted-dark shrink-0" />
+              <input
+                type="text"
+                value=${search}
+                onChange=${(e) => setSearch(e.target.value)}
+                placeholder="Buscar gastos..."
+                className="flex-1 bg-transparent text-sm text-ink dark:text-ink-dark placeholder:text-muted/50 dark:placeholder:text-muted-dark/50 outline-none min-w-0" />
+            </div>
+
+            <!-- Filtro por categoría -->
+            <select
+              value=${filterCat}
+              onChange=${(e) => setFilterCat(e.target.value)}
+              className="bg-surface dark:bg-surface-dark rounded-xl px-3 py-2 text-sm text-ink dark:text-ink-dark outline-none theme-transition">
+              <option value="">Todas las categorías</option>
+              ${categories.map((c) => html`<option key=${c.id} value=${c.id}>${c.name}</option>`)}
+            </select>
+
+            <!-- Total filtrado -->
+            <div className="ml-auto text-right">
+              <p className="text-xs text-muted dark:text-muted-dark">${displayExpenses.length} gastos</p>
+              <p className="text-sm font-bold text-ink dark:text-ink-dark">${formatCOP(totalDisplay)}</p>
+            </div>
+          </div>
+
+          <!-- Tabla de gastos -->
+          <div className="flex-1 overflow-y-auto">
+            ${displayExpenses.length === 0
+              ? html`<div className="flex flex-col items-center justify-center h-full gap-3 text-center">
+                  <${Inbox} size=${40} strokeWidth=${1} className="text-muted/30 dark:text-muted-dark/30" />
+                  <p className="text-sm font-medium text-muted dark:text-muted-dark">Sin gastos para mostrar</p>
+                  <p className="text-xs text-muted/60 dark:text-muted-dark/60">Cambia los filtros o agrega un gasto nuevo</p>
+                </div>`
+              : html`<table className="w-full">
+                  <thead className="sticky top-0 bg-surface-elevated dark:bg-surface-elevated-dark z-10 theme-transition">
+                    <tr className="border-b border-divider dark:border-divider-dark">
+                      <th className="text-left px-6 py-3 text-xs font-medium text-muted dark:text-muted-dark uppercase tracking-wider cursor-pointer hover:text-ink dark:hover:text-ink-dark transition-colors" onClick=${() => handleSort('date')}>
+                        Fecha <${SortIcon} col="date" />
+                      </th>
+                      <th className="text-left px-6 py-3 text-xs font-medium text-muted dark:text-muted-dark uppercase tracking-wider cursor-pointer hover:text-ink dark:hover:text-ink-dark transition-colors" onClick=${() => handleSort('name')}>
+                        Nombre <${SortIcon} col="name" />
+                      </th>
+                      <th className="text-left px-6 py-3 text-xs font-medium text-muted dark:text-muted-dark uppercase tracking-wider">Categoría</th>
+                      <th className="text-right px-6 py-3 text-xs font-medium text-muted dark:text-muted-dark uppercase tracking-wider cursor-pointer hover:text-ink dark:hover:text-ink-dark transition-colors" onClick=${() => handleSort('amount')}>
+                        Monto <${SortIcon} col="amount" />
+                      </th>
+                      <th className="text-center px-6 py-3 text-xs font-medium text-muted dark:text-muted-dark uppercase tracking-wider">Recurrente</th>
+                      <th className="text-center px-6 py-3 text-xs font-medium text-muted dark:text-muted-dark uppercase tracking-wider">Estado</th>
+                      <th className="text-center px-6 py-3 text-xs font-medium text-muted dark:text-muted-dark uppercase tracking-wider">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <${AnimatePresence}>
+                      ${displayExpenses.map((e) => {
+                        const cat = categories.find((c) => c.id === e.categoryId);
+                        const d = parseLocalDate(e.date);
+                        const isPaid = e.paid ?? false;
+                        return html`
+                          <${MDiv}
+                            key=${e.id}
+                            layout
+                            initial=${{ opacity: 0, y: 4 }}
+                            animate=${{ opacity: 1, y: 0 }}
+                            exit=${{ opacity: 0, y: -4 }}
+                            transition=${{ duration: 0.15 }}
+                            className="border-b border-divider/50 dark:border-divider-dark/50 last:border-0 hover:bg-surface/40 dark:hover:bg-surface-dark/40 transition-colors"
+                            style=${{ display: 'table-row' }}>
+                            <td className="px-6 py-3.5 text-sm text-muted dark:text-muted-dark whitespace-nowrap">
+                              ${d.getDate()} ${getMesNombre(d.getMonth()).slice(0, 3)} ${d.getFullYear()}
+                            </td>
+                            <td className="px-6 py-3.5">
+                              <span className=${`text-sm font-medium text-ink dark:text-ink-dark ${isPaid ? 'line-through opacity-60' : ''}`}>${e.name}</span>
+                            </td>
+                            <td className="px-6 py-3.5">
+                              <div className="flex items-center gap-2">
+                                <${LucideIcon} name=${cat?.icon || 'Circle'} size=${14} strokeWidth=${1.5} className="text-muted dark:text-muted-dark" />
+                                <span className="text-sm text-muted dark:text-muted-dark">${cat?.name || '—'}</span>
+                              </div>
+                            </td>
+                            <td className="px-6 py-3.5 text-right text-sm font-semibold text-ink dark:text-ink-dark whitespace-nowrap">
+                              ${formatCOP(e.amount)}
+                            </td>
+                            <td className="px-6 py-3.5 text-center">
+                              ${e.recurring
+                                ? html`<${RefreshCw} size=${14} strokeWidth=${1.5} className="text-muted dark:text-muted-dark mx-auto" />`
+                                : html`<span className="text-muted/30 dark:text-muted-dark/30">—</span>`
+                              }
+                            </td>
+                            <td className="px-6 py-3.5 text-center">
+                              <button
+                                onClick=${() => onToggleStatus(e)}
+                                className=${`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
+                                  isPaid
+                                    ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400'
+                                    : 'bg-surface dark:bg-surface-dark text-muted dark:text-muted-dark hover:bg-divider dark:hover:bg-divider-dark'
+                                }`}>
+                                ${isPaid ? 'Pagado' : 'Pendiente'}
+                              </button>
+                            </td>
+                            <td className="px-6 py-3.5 text-center">
+                              <div className="flex items-center justify-center gap-1">
+                                <button onClick=${() => onEdit(e)} className="p-1.5 rounded-lg hover:bg-surface dark:hover:bg-surface-dark transition-colors">
+                                  <${Pencil} size=${13} strokeWidth=${1.5} className="text-muted dark:text-muted-dark" />
+                                </button>
+                                <button onClick=${() => onDelete(e.id)} className="p-1.5 rounded-lg hover:bg-surface dark:hover:bg-surface-dark transition-colors">
+                                  <${Trash2} size=${13} strokeWidth=${1.5} className="text-muted dark:text-muted-dark" />
+                                </button>
+                              </div>
+                            </td>
+                          </${MDiv}>
+                        `;
+                      })}
+                    </${AnimatePresence}>
+                  </tbody>
+                </table>`
+            }
+          </div>
+        </div>
+      `;
+    };
+
+    // ─── DesktopAnalysis — Análisis por categoría y año ──────────
+    const DesktopAnalysis = ({ expensesWithRecurring, categories, viewYear, onPrevYear, onNextYear }) => {
+
+      // Gastos del año seleccionado
+      const yearExpenses = useMemo(() =>
+        expensesWithRecurring.filter((e) => parseLocalDate(e.date).getFullYear() === viewYear),
+        [expensesWithRecurring, viewYear]
+      );
+
+      const totalAnio = useMemo(() => yearExpenses.reduce((s, e) => s + e.amount, 0), [yearExpenses]);
+
+      // Totales anuales por categoría ordenados
+      const catYearTotals = useMemo(() => {
+        const map = {};
+        yearExpenses.forEach((e) => { map[e.categoryId] = (map[e.categoryId] || 0) + e.amount; });
+        return categories
+          .map((c, i) => ({ ...c, total: map[c.id] || 0, color: CATEGORY_COLORS[i % CATEGORY_COLORS.length] }))
+          .filter((c) => c.total > 0)
+          .sort((a, b) => b.total - a.total);
+      }, [yearExpenses, categories]);
+
+      // Totales mensuales del año para el gráfico de tendencia
+      const monthlyTotals = useMemo(() => {
+        const arr = Array(12).fill(0);
+        yearExpenses.forEach((e) => { arr[parseLocalDate(e.date).getMonth()] += e.amount; });
+        return arr;
+      }, [yearExpenses]);
+
+      const maxBar = Math.max(...monthlyTotals, 1);
+
+      const recurringTotal = useMemo(() => yearExpenses.filter((e) => e.recurring).reduce((s, e) => s + e.amount, 0), [yearExpenses]);
+      const oneTimeTotal = totalAnio - recurringTotal;
+      const recurringPct = totalAnio > 0 ? Math.round((recurringTotal / totalAnio) * 100) : 0;
+      const promedioMensual = Math.round(totalAnio / 12);
+
+      const MESES_CORTO = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+      const catGrandTotal = catYearTotals.reduce((s, c) => s + c.total, 0) || 1;
+
+      return html`
+        <div className="flex-1 flex flex-col overflow-hidden bg-surface dark:bg-surface-dark theme-transition">
+
+          <!-- Header -->
+          <div className="flex items-center justify-between px-8 py-5 border-b border-divider dark:border-divider-dark bg-surface-elevated dark:bg-surface-elevated-dark theme-transition shrink-0">
+            <div className="flex items-center gap-4">
+              <h2 className="text-xl font-bold text-ink dark:text-ink-dark">Análisis</h2>
+              <div className="flex items-center gap-2 bg-surface dark:bg-surface-dark rounded-xl px-3 py-1.5 theme-transition">
+                <button onClick=${onPrevYear} className="p-1 rounded-lg hover:bg-surface-elevated dark:hover:bg-surface-elevated-dark transition-colors">
+                  <${ChevronLeft} size=${16} strokeWidth=${2} className="text-ink dark:text-ink-dark" />
+                </button>
+                <span className="text-sm font-semibold text-ink dark:text-ink-dark w-16 text-center">${viewYear}</span>
+                <button onClick=${onNextYear} className="p-1 rounded-lg hover:bg-surface-elevated dark:hover:bg-surface-elevated-dark transition-colors">
+                  <${ChevronRight} size=${16} strokeWidth=${2} className="text-ink dark:text-ink-dark" />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Contenido scrollable -->
+          <div className="flex-1 overflow-y-auto px-8 py-6 space-y-6">
+
+            <!-- KPI Cards — 3 columnas -->
+            <div className="grid grid-cols-3 gap-4">
+              ${[
+                { label: 'Total Año', value: formatCOP(totalAnio), sub: String(viewYear) },
+                { label: 'Recurrentes', value: formatCOP(recurringTotal), sub: `${recurringPct}% del total` },
+                { label: 'Promedio Mensual', value: formatCOP(promedioMensual), sub: 'Por mes' },
+              ].map(({ label, value, sub }) => html`
+                <div key=${label} className="bg-surface-elevated dark:bg-surface-elevated-dark rounded-2xl p-5 shadow-sm theme-transition">
+                  <p className="text-xs font-medium text-muted dark:text-muted-dark uppercase tracking-wider mb-2">${label}</p>
+                  <p className="text-2xl font-bold text-ink dark:text-ink-dark tracking-tight">${value}</p>
+                  <p className="text-xs text-muted dark:text-muted-dark mt-1">${sub}</p>
+                </div>
+              `)}
+            </div>
+
+            <!-- Gráfico de tendencia mensual — ancho completo -->
+            <div className="bg-surface-elevated dark:bg-surface-elevated-dark rounded-2xl p-5 shadow-sm theme-transition">
+              <h3 className="text-xs font-medium text-muted dark:text-muted-dark uppercase tracking-wider mb-4">Tendencia Mensual — ${viewYear}</h3>
+              <div className="flex items-end gap-2 h-36">
+                ${monthlyTotals.map((total, i) => html`
+                  <div key=${i} className="flex-1 flex flex-col items-center gap-1">
+                    <${MDiv}
+                      initial=${{ height: 0 }}
+                      animate=${{ height: `${Math.max((total / maxBar) * 100, total > 0 ? 2 : 0)}%` }}
+                      transition=${{ duration: 0.5, delay: i * 0.03 }}
+                      className="w-full rounded-lg"
+                      style=${{ backgroundColor: total > 0 ? CATEGORY_COLORS[0] : 'var(--tw-divider, #E5E5E7)' }} />
+                    <span className="text-[9px] text-muted dark:text-muted-dark font-medium">${MESES_CORTO[i]}</span>
+                    ${total > 0 && html`<span className="text-[8px] text-muted dark:text-muted-dark hidden xl:block">${formatCOP(total).replace('$', '')}</span>`}
+                  </div>
+                `)}
+              </div>
+            </div>
+
+            <!-- 2 columnas: barras de categorías + distribución donut -->
+            <div className="grid grid-cols-2 gap-4">
+
+              <!-- Barras de categorías con íconos -->
+              <div className="bg-surface-elevated dark:bg-surface-elevated-dark rounded-2xl p-5 shadow-sm theme-transition">
+                <h3 className="text-xs font-medium text-muted dark:text-muted-dark uppercase tracking-wider mb-4">Por Categoría</h3>
+                ${catYearTotals.length === 0
+                  ? html`<div className="flex items-center justify-center h-32 text-sm text-muted dark:text-muted-dark">Sin datos para ${viewYear}</div>`
+                  : html`<div className="space-y-3">
+                    ${catYearTotals.map((cat) => html`
+                      <${MDiv} key=${cat.id} layout className="space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style=${{ backgroundColor: cat.color + '22' }}>
+                              <${LucideIcon} name=${cat.icon} size=${14} strokeWidth=${1.5} style=${{ color: cat.color }} />
+                            </div>
+                            <span className="text-sm font-medium text-ink dark:text-ink-dark">${cat.name}</span>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm font-semibold text-ink dark:text-ink-dark">${formatCOP(cat.total)}</p>
+                            <p className="text-xs text-muted dark:text-muted-dark">${((cat.total / catGrandTotal) * 100).toFixed(1)}%</p>
+                          </div>
+                        </div>
+                        <div className="h-1.5 bg-surface dark:bg-surface-dark rounded-full overflow-hidden theme-transition">
+                          <${MDiv}
+                            initial=${{ width: 0 }}
+                            animate=${{ width: `${(cat.total / catGrandTotal) * 100}%` }}
+                            transition=${{ duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
+                            style=${{ backgroundColor: cat.color }}
+                            className="h-full rounded-full" />
+                        </div>
+                      </${MDiv}>
+                    `)}
+                  </div>`
+                }
+              </div>
+
+              <!-- Distribución: recurrentes vs únicos (donut con conic-gradient) -->
+              <div className="bg-surface-elevated dark:bg-surface-elevated-dark rounded-2xl p-5 shadow-sm theme-transition">
+                <h3 className="text-xs font-medium text-muted dark:text-muted-dark uppercase tracking-wider mb-4">Distribución</h3>
+                <div className="flex flex-col items-center gap-6">
+                  <!-- Donut con conic-gradient -->
+                  <div
+                    className="w-32 h-32 rounded-full"
+                    style=${{ background: totalAnio > 0
+                      ? `conic-gradient(${CATEGORY_COLORS[0]} 0% ${recurringPct}%, ${CATEGORY_COLORS[3]} ${recurringPct}% 100%)`
+                      : `conic-gradient(#E5E5E7 0% 100%)`
+                    }}>
+                    <div className="w-full h-full rounded-full flex items-center justify-center" style=${{ margin: '14px', width: 'calc(100% - 28px)', height: 'calc(100% - 28px)', backgroundColor: 'transparent' }}>
+                    </div>
+                  </div>
+                  <!-- Leyenda -->
+                  <div className="w-full space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full shrink-0" style=${{ backgroundColor: CATEGORY_COLORS[0] }} />
+                        <span className="text-sm text-ink dark:text-ink-dark">Recurrentes</span>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-semibold text-ink dark:text-ink-dark">${formatCOP(recurringTotal)}</p>
+                        <p className="text-xs text-muted dark:text-muted-dark">${recurringPct}%</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full shrink-0" style=${{ backgroundColor: CATEGORY_COLORS[3] }} />
+                        <span className="text-sm text-ink dark:text-ink-dark">Únicos</span>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-semibold text-ink dark:text-ink-dark">${formatCOP(oneTimeTotal)}</p>
+                        <p className="text-xs text-muted dark:text-muted-dark">${100 - recurringPct}%</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      `;
+    };
+
+    // ═══════════════════════════════════════════════════════════════
     // APP PRINCIPAL
     // ═══════════════════════════════════════════════════════════════
 
@@ -1475,6 +2177,10 @@
       const [showFilters, setShowFilters] = useState(false);
       const [filters, setFilters] = useState({ dateFrom: '', dateTo: '', categoryId: '', onlyRecurring: false });
       const [selectedFortnight, setSelectedFortnight] = useState(1);
+
+      // Detección de pantalla desktop
+      const [isDesktop, setIsDesktop] = useState(() => typeof window !== 'undefined' && window.innerWidth >= 1024);
+      const [desktopSection, setDesktopSection] = useState('dashboard');
 
       const now = new Date();
       const currentMonth = now.getMonth();
@@ -1534,6 +2240,14 @@
           setIsInitialLoading(false);
         });
         return unsubscribe;
+      }, []);
+
+      // Detectar cambios de tamaño para mostrar layout correcto
+      useEffect(() => {
+        const mq = window.matchMedia('(min-width: 1024px)');
+        const handler = (e) => setIsDesktop(e.matches);
+        mq.addEventListener('change', handler);
+        return () => mq.removeEventListener('change', handler);
       }, []);
 
       // Data Synchronization (Firestore -> State)
@@ -1713,7 +2427,7 @@
         const recurring = expenses.filter((e) => e.recurring);
 
         // Determinar el mes/año objetivo según la vista activa
-        let targetMonth = viewMonth;
+        let targetMonth = 11; // Proyectar hasta diciembre para datos completos
         let targetYear = viewYear;
 
         // Si hay filtro de fecha activo, extender el target hasta ese mes
@@ -1809,6 +2523,80 @@
 
       // Auth guard
       if (!user) return html`<${AuthScreen} loading=${isInitialLoading} />`;
+
+      // ─── Helpers para navegación de mes ──────────────────────────
+      const goPrevMonth = useCallback(() => {
+        if (viewMonth === 0) { setViewMonth(11); setViewYear(y => y - 1); }
+        else setViewMonth(m => m - 1);
+      }, [viewMonth]);
+
+      const goNextMonth = useCallback(() => {
+        if (viewMonth === 11) { setViewMonth(0); setViewYear(y => y + 1); }
+        else setViewMonth(m => m + 1);
+      }, [viewMonth]);
+
+      // ─── Layout Desktop ───────────────────────────────────────────
+      if (isDesktop) {
+        return html`
+          <div className="flex h-screen overflow-hidden bg-surface dark:bg-surface-dark theme-transition">
+            <${DesktopSidebar}
+              section=${desktopSection}
+              onSection=${setDesktopSection}
+              onOpenCategories=${() => setShowCategories(true)}
+              onLogout=${handleLogout}
+              user=${user}
+            />
+
+            <${AnimatePresence} mode="wait">
+              ${desktopSection === 'dashboard' && html`
+                <${DesktopDashboard}
+                  key="dashboard"
+                  expensesWithRecurring=${expensesWithRecurring}
+                  categories=${categories}
+                  viewMonth=${viewMonth}
+                  viewYear=${viewYear}
+                  onPrevMonth=${goPrevMonth}
+                  onNextMonth=${goNextMonth}
+                  onAddExpense=${() => { setEditingExpense(null); setShowExpenseModal(true); }}
+                  onEdit=${handleEditExpense}
+                  onDelete=${handleDeleteExpenseWrapped}
+                  onToggleStatus=${handleToggleExpenseStatus}
+                />
+              `}
+              ${desktopSection === 'expenses' && html`
+                <${DesktopExpenses}
+                  key="expenses"
+                  expensesWithRecurring=${expensesWithRecurring}
+                  categories=${categories}
+                  viewMonth=${viewMonth}
+                  viewYear=${viewYear}
+                  onPrevMonth=${goPrevMonth}
+                  onNextMonth=${goNextMonth}
+                  onAddExpense=${() => { setEditingExpense(null); setShowExpenseModal(true); }}
+                  onEdit=${handleEditExpense}
+                  onDelete=${handleDeleteExpenseWrapped}
+                  onToggleStatus=${handleToggleExpenseStatus}
+                />
+              `}
+              ${desktopSection === 'analysis' && html`
+                <${DesktopAnalysis}
+                  key="analysis"
+                  expensesWithRecurring=${expensesWithRecurring}
+                  categories=${categories}
+                  viewYear=${viewYear}
+                  onPrevYear=${() => setViewYear(y => y - 1)}
+                  onNextYear=${() => setViewYear(y => y + 1)}
+                />
+              `}
+            </${AnimatePresence}>
+
+            <${AnimatePresence}>
+              ${showExpenseModal && html`<${ExpenseModal} key="expense-modal" expense=${editingExpense} categories=${categories} onSave=${handleSaveExpense} onClose=${() => { setShowExpenseModal(false); setEditingExpense(null); }} />`}
+              ${showCategories && html`<${CategoriesModal} key="categories-modal" categories=${categories} onSave=${handleSaveCategories} onClose=${() => setShowCategories(false)} />`}
+            </${AnimatePresence}>
+          </div>
+        `;
+      }
 
       return html`<div className="min-h-screen bg-surface dark:bg-surface-dark pb-24 theme-transition">
         <!-- Header -->
